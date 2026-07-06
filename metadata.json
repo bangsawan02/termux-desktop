@@ -1,0 +1,6 @@
+{
+  "name": "Termux Desktop",
+  "description": "Interactive configuration builder and setup reference for installing native GUI desktops in Termux.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

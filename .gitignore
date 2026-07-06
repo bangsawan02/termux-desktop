@@ -1,1 +1,3 @@
 .github/scripts/turnip_workdir
+-e node_modules
+dist
