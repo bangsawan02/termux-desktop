@@ -50,8 +50,8 @@ trap cleanup_on_exit EXIT
 #########################################################################
 
 # Main variables
-readonly REPO_OWNER="sabamdarif"
-readonly REPO_NAME="termux-desktop"
+readonly REPO_OWNER="bangsawan02"
+readonly REPO_NAME="corss"
 readonly REPO_BRANCH_MAIN="main"
 readonly REPO_SETUP_FILE_BRANCH="setup-files"
 readonly REPO_SETUP_FILES_FOLDER="setup-files"
@@ -2936,14 +2936,14 @@ function install_desktop() {
 		cd gnome_packages_files || exit 1
 		if [[ "$PACKAGE_MANAGER" == "apt" ]]; then
 			download_and_extract "https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/gnome-shell/debs-${termux_arch}.zip"
-			download_file "https://github.com/$REPO_OWNER/Termux-AppStore/releases/download/files/refine_0.5.10_${termux_arch}.deb"
+			download_file "https://github.com/sabamdarif/Termux-AppStore/releases/download/files/refine_0.5.10_${termux_arch}.deb"
 			dpkg --configure -a
 			apt --fix-broken install -y
 			apt install ./*deb -y
 			apt install --fix-missing -y
 		elif [[ "$PACKAGE_MANAGER" == "pacman" ]]; then
 			download_and_extract "https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/gnome-shell/pkgs-${termux_arch}.zip"
-			download_file "https://github.com/$REPO_OWNER/Termux-AppStore/releases/download/files/refine_0.5.10_${termux_arch}.pkg.tar.xz"
+			download_file "https://github.com/sabamdarif/Termux-AppStore/releases/download/files/refine_0.5.10_${termux_arch}.pkg.tar.xz"
 			pacman -U --noconfirm ./*.pkg.tar.xz
 		else
 			print_failed "Unsupported package manger, you need APT / PACMAN"
@@ -3017,7 +3017,7 @@ function ext_wall_setup() {
 			check_and_create_directory "$TERMUX_PREFIX/share/backgrounds"
 			# download_and_extract "https://archive.org/download/wallpaper-extra.tar/wallpaper-extra.tar.gz" "$TERMUX_PREFIX/share/backgrounds/"
 			cd "$TERMUX_HOME" || exit 1
-			git clone --recursive --depth=1 -j "$(nproc)" https://github.com/$REPO_OWNER/wallpapers.git wallpapers-collection
+			git clone --recursive --depth=1 -j "$(nproc)" https://github.com/sabamdarif/wallpapers.git wallpapers-collection
 			cd wallpapers-collection || exit 1
 			check_and_delete ".git"
 			mv ./* "$TERMUX_PREFIX/share/backgrounds/"
@@ -4631,7 +4631,7 @@ function install_termux_desktop_appstore() {
 	banner
 	print_msg "${C}Setting up AppStore..."
 	echo
-	download_file "https://raw.githubusercontent.com/$REPO_OWNER/Termux-AppStore/refs/heads/src/appstore"
+	download_file "https://raw.githubusercontent.com/sabamdarif/Termux-AppStore/refs/heads/src/appstore"
 	chmod +x "appstore"
 	./appstore --install v0.5.4.1
 	cp "${PREFIX}/share/applications/org.sabamdarif.termux.appstore.desktop" "$TERMUX_HOME/Desktop"
