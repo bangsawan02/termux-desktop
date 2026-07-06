@@ -7,9 +7,9 @@
 </div>
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/sabamdarif/termux-desktop?style=for-the-badge) ![GitHub issues](https://img.shields.io/github/issues/sabamdarif/termux-desktop?color=violet&style=for-the-badge) ![GitHub repo size](https://img.shields.io/github/repo-size/sabamdarif/termux-desktop?style=for-the-badge) ![GitHub License](https://img.shields.io/github/license/sabamdarif/termux-desktop?style=for-the-badge)
+![GitHub stars](https://img.shields.io/github/stars/bangsawan02/termux-desktop?style=for-the-badge) ![GitHub issues](https://img.shields.io/github/issues/bangsawan02/termux-desktop?color=violet&style=for-the-badge) ![GitHub repo size](https://img.shields.io/github/repo-size/bangsawan02/termux-desktop?style=for-the-badge) ![GitHub License](https://img.shields.io/github/license/bangsawan02/termux-desktop?style=for-the-badge)
 
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/sabamdarif/termux-desktop/total?style=for-the-badge)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/bangsawan02/termux-desktop/total?style=for-the-badge)
 
 </div>
 
@@ -91,7 +91,7 @@
 #### One Liner:
 
 ```bash
-bash <(curl -Lf https://raw.githubusercontent.com/sabamdarif/termux-desktop/main/setup-termux-desktop)
+bash <(curl -Lf https://raw.githubusercontent.com/bangsawan02/termux-desktop/main/setup-termux-desktop)
 ```
 
 #### Or:
@@ -212,7 +212,7 @@ Options:
 - `gui -s / --stop` `vnc` _to stop VNC_
 - `gui -s / --stop` `tx11` _to stop Termux:X11_
 - `gui -k / --kill / -kill` _to kill both vncserver and Termux:x11 At Once_
-- `gui --display / gui -d` `<IP_ADDRESS>:<DISPLAY_PORT>` _To launch the current desktop environment on another X11 display server over the same network_. For more click :- [Here](https://github.com/sabamdarif/termux-desktop/blob/main/docs/see-more.md#hammer_and_wrenchhow-to-use-x11-display-forwarding-option)
+- `gui --display / gui -d` `<IP_ADDRESS>:<DISPLAY_PORT>` _To launch the current desktop environment on another X11 display server over the same network_. For more click :- [Here](https://github.com/bangsawan02/termux-desktop/blob/main/docs/see-more.md#hammer_and_wrenchhow-to-use-x11-display-forwarding-option)
 
 </details>
 

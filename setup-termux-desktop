@@ -51,7 +51,7 @@ trap cleanup_on_exit EXIT
 
 # Main variables
 readonly REPO_OWNER="bangsawan02"
-readonly REPO_NAME="corss"
+readonly REPO_NAME="termux-desktop"
 readonly REPO_BRANCH_MAIN="main"
 readonly REPO_SETUP_FILE_BRANCH="setup-files"
 readonly REPO_SETUP_FILES_FOLDER="setup-files"
