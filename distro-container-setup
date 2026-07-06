@@ -190,7 +190,7 @@ function setup_chroot_distro() {
 
 function set_distro_paths {
 	banner
-	print_msg "Setiing up distro related paths"
+	print_msg "Setting up distro related paths"
 	if [[ "$selected_distro_type" == "proot" ]]; then
 		distro_path="$TERMUX_PREFIX/var/lib/proot-distro/installed-rootfs/$selected_distro"
 	elif [[ "$selected_distro_type" == "chroot" ]]; then
@@ -464,10 +464,10 @@ function create_shell_script() {
 		EOF
 	fi
 	if [[ "$selected_distro_type" == "chroot" ]]; then
-		typeset -f check_termux log_debug print_success print_failed print_warn print_msg wait_for_keypress check_and_create_directory check_and_delete check_and_backup download_file check_and_restore detect_package_manager package_install_and_check install_package_with_retry package_check_and_remove remove_package_with_retry get_file_name_number extract_zip_with_progress extract_archive download_and_extract count_subfolders confirmation_y_or_n get_latest_release install_font_for_style select_an_option read_conf print_to_config pd_package_install_and_check set_distro_paths setup_distro | sudo tee -a "$script_path" >/dev/null
+		typeset -f check_termux log_debug print_success print_failed print_warn print_msg start_pulseaudio wait_for_keypress check_and_create_directory check_and_delete check_and_backup download_file check_and_restore detect_package_manager package_install_and_check install_package_with_retry package_check_and_remove remove_package_with_retry get_file_name_number extract_zip_with_progress extract_archive download_and_extract count_subfolders confirmation_y_or_n get_latest_release install_font_for_style select_an_option read_conf print_to_config pd_package_install_and_check set_distro_paths setup_distro | sudo tee -a "$script_path" >/dev/null
 		echo "$shell_setup_content" | sudo tee -a "$script_path" >/dev/null
 	else
-		typeset -f check_termux log_debug print_success print_failed print_warn print_msg wait_for_keypress check_and_create_directory check_and_delete check_and_backup download_file check_and_restore detect_package_manager package_install_and_check install_package_with_retry package_check_and_remove remove_package_with_retry get_file_name_number extract_zip_with_progress extract_archive download_and_extract count_subfolders confirmation_y_or_n get_latest_release install_font_for_style select_an_option read_conf print_to_config pd_package_install_and_check set_distro_paths setup_distro >>"$script_path"
+		typeset -f check_termux log_debug print_success print_failed print_warn print_msg start_pulseaudio wait_for_keypress check_and_create_directory check_and_delete check_and_backup download_file check_and_restore detect_package_manager package_install_and_check install_package_with_retry package_check_and_remove remove_package_with_retry get_file_name_number extract_zip_with_progress extract_archive download_and_extract count_subfolders confirmation_y_or_n get_latest_release install_font_for_style select_an_option read_conf print_to_config pd_package_install_and_check set_distro_paths setup_distro >>"$script_path"
 		echo "$shell_setup_content" >>"$script_path"
 	fi
 	# Make script executable
@@ -539,9 +539,13 @@ function distro_fix_sound_issue() {
 	create_shell_script "$save_path/install_audio_related_packs.sh" "$install_audio_related_packs"
 	"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/install_audio_related_packs.sh'
 	if [[ "$selected_distro_type" == "chroot" ]]; then
-		echo "export PULSE_SERVER=127.0.0.1" | sudo tee -a "$distro_path/etc/profile" >/dev/null
+		if ! sudo grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
+			echo "export PULSE_SERVER=127.0.0.1" | sudo tee -a "$distro_path/etc/profile" >/dev/null
+		fi
 	else
-		echo "export PULSE_SERVER=127.0.0.1" >>"$distro_path/etc/profile"
+		if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
+			echo "export PULSE_SERVER=127.0.0.1" >>"$distro_path/etc/profile"
+		fi
 	fi
 	print_to_config "pd_audio_config_answer"
 }
@@ -2280,7 +2284,7 @@ function install_distro_container() {
 #
 #########################################################################
 
-function chroot_disro_container_install_check() {
+function chroot_distro_container_install_check() {
 	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls /data/local/chroot-distro/installed-rootfs/$selected_distro" &>/dev/null; then
 		echo
 		print_success "${BOLD} $selected_distro container setup successfully"
@@ -2306,7 +2310,7 @@ function chroot_disro_container_install_check() {
 	fi
 }
 
-function proot_disro_container_install_check() {
+function proot_distro_container_install_check() {
 	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && [[ -d "$TERMUX_PREFIX/var/lib/proot-distro/installed-rootfs/$selected_distro" ]]; then
 		echo
 		print_success "${BOLD} $selected_distro container setup successfully"
@@ -2332,11 +2336,11 @@ function proot_disro_container_install_check() {
 	fi
 }
 
-function disro_container_install_check() {
+function distro_container_install_check() {
 	if [[ "$selected_distro_type" == "chroot" ]]; then
-		chroot_disro_container_install_check
+		chroot_distro_container_install_check
 	else
-		proot_disro_container_install_check
+		proot_distro_container_install_check
 	fi
 }
 
@@ -2348,5 +2352,5 @@ check_termux
 # but don't want to run the entire setup process
 function run_distro_container_setup_main() {
 	install_distro_container
-	disro_container_install_check
+	distro_container_install_check
 }
