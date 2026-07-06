@@ -1352,15 +1352,18 @@ function question_installed_browser() {
 	echo
 	echo "${Y}3. firefox & chromium (both)${NC}"
 	echo
-	echo "${Y}4. Skip${NC}"
+	echo "${Y}4. Google Chrome (via Mobox)${NC}"
 	echo
-	select_an_option 4 1 browser_answer
+	echo "${Y}5. Skip${NC}"
+	echo
+	select_an_option 5 1 browser_answer
 	# shellcheck disable=SC2154
 	case "$browser_answer" in
 	1) installed_browser="firefox" ;;
 	2) installed_browser="chromium" ;;
 	3) installed_browser="all" ;;
-	4) installed_browser="skip" ;;
+	4) installed_browser="google-chrome-mobox" ;;
+	5) installed_browser="skip" ;;
 	esac
 }
 
@@ -2077,6 +2080,8 @@ function define_value_name() {
 		browser_name="Chromium"
 	elif [[ "$installed_browser" == "all" ]]; then
 		browser_name="Both Firefox and Chromium"
+	elif [[ "$installed_browser" == "google-chrome-mobox" ]]; then
+		browser_name="Google Chrome (Mobox)"
 	elif [[ "$installed_browser" == "skip" ]]; then
 		browser_name="Skip"
 	fi
@@ -4509,6 +4514,40 @@ function browser_installer() {
 		package_install_and_check "chromium"
 	elif [[ ${installed_browser} == "all" ]]; then
 		package_install_and_check "firefox chromium"
+	elif [[ ${installed_browser} == "google-chrome-mobox" ]]; then
+		print_msg "Installing Google Chrome via Mobox..."
+		if [[ ! -f "$TERMUX_PREFIX/bin/wine" ]]; then
+			print_failed "Wine/Mobox is not installed. Please set up Wine/Mobox first."
+		else
+			local chrome_installer_url="https://dl.google.com/chrome/install/standalonesources/GoogleChromeStandaloneEnterprise64.msi"
+			local temp_installer="$TERMUX_PREFIX/tmp/ChromeStandaloneSetup64.msi"
+			print_msg "Downloading Google Chrome Windows standalone installer..."
+			mkdir -p "$TERMUX_PREFIX/tmp"
+			if curl -Lf "$chrome_installer_url" -o "$temp_installer"; then
+				print_success "Download complete."
+				print_msg "Running installer under Mobox/Wine..."
+				wine "$temp_installer"
+				print_success "Google Chrome installation initiated under Mobox."
+				
+				# Create a desktop entry for Google Chrome via Mobox/Wine
+				local desktop_file="$TERMUX_PREFIX/share/applications/google-chrome-mobox.desktop"
+				cat <<-CHROME_EOF > "$desktop_file"
+					[Desktop Entry]
+					Name=Google Chrome (Mobox)
+					Comment=Web Browser via Mobox/Wine
+					Exec=wine "C:/Program Files/Google/Chrome/Application/chrome.exe"
+					Icon=google-chrome
+					Terminal=false
+					Type=Application
+					Categories=Network;WebBrowser;
+				CHROME_EOF
+				chmod +x "$desktop_file"
+				update-desktop-database "$TERMUX_PREFIX/share/applications" 2>/dev/null || true
+				print_success "Created desktop shortcut: Google Chrome (Mobox)"
+			else
+				print_failed "Failed to download Google Chrome installer."
+			fi
+		fi
 	elif [[ ${installed_browser} == "skip" ]]; then
 		print_msg "${C}Skipping Browser Installation..."
 		echo
@@ -5220,6 +5259,8 @@ function remove_termux_desktop() {
 				package_check_and_remove "chromium"
 			elif [[ "$installed_browser" == "all" ]]; then
 				package_check_and_remove "firefox chromium"
+			elif [[ "$installed_browser" == "google-chrome-mobox" ]]; then
+				check_and_delete "$TERMUX_PREFIX/share/applications/google-chrome-mobox.desktop"
 			fi
 			#remove ide
 			if [[ "$installed_ide" == "code" ]]; then

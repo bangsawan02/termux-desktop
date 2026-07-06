@@ -26,7 +26,7 @@ import {
 
 interface SetupConfig {
   deName: string;
-  installed_browser: 'all' | 'firefox' | 'chromium' | 'none';
+  installed_browser: 'all' | 'firefox' | 'chromium' | 'google-chrome-mobox' | 'none';
   installed_ide: 'code' | 'none';
   installed_media_player: 'vlc' | 'none';
   installed_photo_editor: 'gimp' | 'none';
@@ -526,11 +526,12 @@ export default function App() {
                     </div>
                     <span className="text-[10px] bg-[#00796b]/10 text-[#00796b] px-1.5 py-0.5 rounded font-bold">Heavier package</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5" id="browser-selector">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5" id="browser-selector">
                     {[
                       { id: 'all', label: 'All' },
                       { id: 'firefox', label: 'Firefox' },
                       { id: 'chromium', label: 'Chromium' },
+                      { id: 'google-chrome-mobox', label: 'Chrome (Mobox)' },
                       { id: 'none', label: 'Skip' }
                     ].map(b => (
                       <button

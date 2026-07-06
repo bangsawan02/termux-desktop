@@ -913,6 +913,57 @@ function chroot_distro_debian_based_app_installer() {
 		    ## Handle install package and add to menu part ##
 		    #################################################
 
+		    local install_chrome_mobox=false
+		    local new_args=()
+		    for arg in "\$@"; do
+		        if [[ "\$arg" == "google.chrome" || "\$arg" == "google-chrome" ]]; then
+		            install_chrome_mobox=true
+		        else
+		            new_args+=("\$arg")
+		        fi
+		    done
+
+		    if [[ "\$install_chrome_mobox" == "true" ]]; then
+		        print_msg "Installing Google Chrome via Mobox..."
+		        if [[ ! -f "$TERMUX_PREFIX/bin/wine" ]]; then
+		            print_failed "Wine/Mobox is not installed. Please set up Wine/Mobox in Termux-Desktop first."
+		        else
+		            local chrome_installer_url="https://dl.google.com/chrome/install/standalonesources/GoogleChromeStandaloneEnterprise64.msi"
+		            local temp_installer="$TERMUX_PREFIX/tmp/ChromeStandaloneSetup64.msi"
+		            print_msg "Downloading Google Chrome Windows standalone installer..."
+		            mkdir -p "$TERMUX_PREFIX/tmp"
+		            if curl -Lf "\$chrome_installer_url" -o "\$temp_installer"; then
+		                print_success "Download complete."
+		                print_msg "Running installer under Mobox/Wine..."
+		                wine "\$temp_installer"
+		                print_success "Google Chrome installation initiated under Mobox."
+		                
+		                # Create a desktop entry for Google Chrome via Mobox/Wine
+		                local desktop_file="$TERMUX_PREFIX/share/applications/google-chrome-mobox.desktop"
+		                cat <<-CHROME_EOF > "\$desktop_file"
+							[Desktop Entry]
+							Name=Google Chrome (Mobox)
+							Comment=Web Browser via Mobox/Wine
+							Exec=wine "C:/Program Files/Google/Chrome/Application/chrome.exe"
+							Icon=google-chrome
+							Terminal=false
+							Type=Application
+							Categories=Network;WebBrowser;
+						CHROME_EOF
+		                chmod +x "\$desktop_file"
+		                update-desktop-database "$TERMUX_PREFIX/share/applications" 2>/dev/null || true
+		                print_success "Created desktop shortcut: Google Chrome (Mobox)"
+		            else
+		                print_failed "Failed to download Google Chrome installer."
+		            fi
+		        fi
+		    fi
+
+		    if [[ \${#new_args[@]} -eq 0 ]]; then
+		        return 0
+		    fi
+		    set -- "\${new_args[@]}"
+
 		    # Create the packinstall.sh script
 		    sudo tee "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
 		#!/bin/bash
@@ -1203,6 +1254,57 @@ function chroot_distro_arch_based_app_installer() {
 		    ## Handle install package and add to menu part ##
 		    #################################################
 
+		    local install_chrome_mobox=false
+		    local new_args=()
+		    for arg in "\$@"; do
+		        if [[ "\$arg" == "google.chrome" || "\$arg" == "google-chrome" ]]; then
+		            install_chrome_mobox=true
+		        else
+		            new_args+=("\$arg")
+		        fi
+		    done
+
+		    if [[ "\$install_chrome_mobox" == "true" ]]; then
+		        print_msg "Installing Google Chrome via Mobox..."
+		        if [[ ! -f "$TERMUX_PREFIX/bin/wine" ]]; then
+		            print_failed "Wine/Mobox is not installed. Please set up Wine/Mobox in Termux-Desktop first."
+		        else
+		            local chrome_installer_url="https://dl.google.com/chrome/install/standalonesources/GoogleChromeStandaloneEnterprise64.msi"
+		            local temp_installer="$TERMUX_PREFIX/tmp/ChromeStandaloneSetup64.msi"
+		            print_msg "Downloading Google Chrome Windows standalone installer..."
+		            mkdir -p "$TERMUX_PREFIX/tmp"
+		            if curl -Lf "\$chrome_installer_url" -o "\$temp_installer"; then
+		                print_success "Download complete."
+		                print_msg "Running installer under Mobox/Wine..."
+		                wine "\$temp_installer"
+		                print_success "Google Chrome installation initiated under Mobox."
+		                
+		                # Create a desktop entry for Google Chrome via Mobox/Wine
+		                local desktop_file="$TERMUX_PREFIX/share/applications/google-chrome-mobox.desktop"
+		                cat <<-CHROME_EOF > "\$desktop_file"
+							[Desktop Entry]
+							Name=Google Chrome (Mobox)
+							Comment=Web Browser via Mobox/Wine
+							Exec=wine "C:/Program Files/Google/Chrome/Application/chrome.exe"
+							Icon=google-chrome
+							Terminal=false
+							Type=Application
+							Categories=Network;WebBrowser;
+						CHROME_EOF
+		                chmod +x "\$desktop_file"
+		                update-desktop-database "$TERMUX_PREFIX/share/applications" 2>/dev/null || true
+		                print_success "Created desktop shortcut: Google Chrome (Mobox)"
+		            else
+		                print_failed "Failed to download Google Chrome installer."
+		            fi
+		        fi
+		    fi
+
+		    if [[ \${#new_args[@]} -eq 0 ]]; then
+		        return 0
+		    fi
+		    set -- "\${new_args[@]}"
+
 		    if [[ ! -d "$TERMUX_PREFIX/share/applications/pd_added" ]]; then
 		        mkdir -p "$TERMUX_PREFIX/share/applications/pd_added"
 		    fi
@@ -1487,6 +1589,57 @@ function chroot_distro_fedora_based_app_installer() {
 		    ## Handle install package and add to menu part ##
 		    #################################################
 
+		    local install_chrome_mobox=false
+		    local new_args=()
+		    for arg in "\$@"; do
+		        if [[ "\$arg" == "google.chrome" || "\$arg" == "google-chrome" ]]; then
+		            install_chrome_mobox=true
+		        else
+		            new_args+=("\$arg")
+		        fi
+		    done
+
+		    if [[ "\$install_chrome_mobox" == "true" ]]; then
+		        print_msg "Installing Google Chrome via Mobox..."
+		        if [[ ! -f "$TERMUX_PREFIX/bin/wine" ]]; then
+		            print_failed "Wine/Mobox is not installed. Please set up Wine/Mobox in Termux-Desktop first."
+		        else
+		            local chrome_installer_url="https://dl.google.com/chrome/install/standalonesources/GoogleChromeStandaloneEnterprise64.msi"
+		            local temp_installer="$TERMUX_PREFIX/tmp/ChromeStandaloneSetup64.msi"
+		            print_msg "Downloading Google Chrome Windows standalone installer..."
+		            mkdir -p "$TERMUX_PREFIX/tmp"
+		            if curl -Lf "\$chrome_installer_url" -o "\$temp_installer"; then
+		                print_success "Download complete."
+		                print_msg "Running installer under Mobox/Wine..."
+		                wine "\$temp_installer"
+		                print_success "Google Chrome installation initiated under Mobox."
+		                
+		                # Create a desktop entry for Google Chrome via Mobox/Wine
+		                local desktop_file="$TERMUX_PREFIX/share/applications/google-chrome-mobox.desktop"
+		                cat <<-CHROME_EOF > "\$desktop_file"
+							[Desktop Entry]
+							Name=Google Chrome (Mobox)
+							Comment=Web Browser via Mobox/Wine
+							Exec=wine "C:/Program Files/Google/Chrome/Application/chrome.exe"
+							Icon=google-chrome
+							Terminal=false
+							Type=Application
+							Categories=Network;WebBrowser;
+						CHROME_EOF
+		                chmod +x "\$desktop_file"
+		                update-desktop-database "$TERMUX_PREFIX/share/applications" 2>/dev/null || true
+		                print_success "Created desktop shortcut: Google Chrome (Mobox)"
+		            else
+		                print_failed "Failed to download Google Chrome installer."
+		            fi
+		        fi
+		    fi
+
+		    if [[ \${#new_args[@]} -eq 0 ]]; then
+		        return 0
+		    fi
+		    set -- "\${new_args[@]}"
+
 		    # Create the packinstall.sh script
 		    sudo tee "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
 		#!/bin/bash
@@ -1683,7 +1836,7 @@ function add_chroot_distro_function_caller() {
 			Usage: $selected_distro [OPTION] [ARGUMENT]
 
 			Options:
-			install <packagename>    - install packages and add them to termux desktop
+			install <packagename>    - install packages and add them to termux desktop (e.g. google.chrome via Mobox)
 			remove <packagename>     - remove packages and also remove them to termux desktop
 			update                   - update the Linux distro
 			-r                       - login as root
