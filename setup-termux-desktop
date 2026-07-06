@@ -186,6 +186,39 @@ function print_warn() {
 	log_debug "$msg"
 }
 
+function start_pulseaudio() {
+	# Check if pulseaudio is already running
+	if pgrep -x "pulseaudio" >/dev/null; then
+		log_debug "pulseaudio is already running."
+		return 0
+	fi
+
+	# Clean up any stale pid files before starting
+	rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
+	rm -rf "$TERMUX_PREFIX/tmp/pulse-*" >/dev/null 2>&1
+
+	# Try to start pulseaudio
+	if pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1; then
+		log_debug "pulseaudio started successfully."
+		return 0
+	fi
+
+	# If it fails, force kill and clean up, then retry
+	log_debug "pulseaudio failed to start on first try. Forcing cleanup and retrying..."
+	pkill -9 pulseaudio >/dev/null 2>&1
+	rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
+	rm -rf "$TERMUX_PREFIX/tmp/pulse-*" >/dev/null 2>&1
+	sleep 0.5
+
+	if pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1; then
+		log_debug "pulseaudio started successfully after cleanup."
+		return 0
+	else
+		print_failed "pulseaudio failed to start (likely already running or stale runtime state)."
+		return 1
+	fi
+}
+
 function print_msg() {
 	local msg
 	msg="$1"
@@ -3397,12 +3430,7 @@ function setup_vncstart_cmd() {
 			fi
 
 			if [[ "\$1" != "--help" && "\$1" != "-h" ]]; then
-			      if \$use_debug; then
-			          rm -rf ~/.config/pulse/*-runtime/pid
-			      else
-			          rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
-			      fi
-			    pulseaudio --start --exit-idle-time=-1
+			    start_pulseaudio
 			    pactl load-module module-sles-source > /dev/null 2>&1
 			fi
 
@@ -3469,12 +3497,7 @@ function setup_vncstart_cmd() {
 			fi
 
 			if [[ "\$1" != "--help" && "\$1" != "-h" ]]; then
-			      if \$use_debug; then
-			          rm -rf ~/.config/pulse/*-runtime/pid
-			      else
-			          rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
-			      fi
-			    pulseaudio --start --exit-idle-time=-1
+			    start_pulseaudio
 			    pactl load-module module-sles-source > /dev/null 2>&1
 			fi
 
@@ -3780,13 +3803,7 @@ function setup_tx11start_cmd() {
 			    # Start pulseaudio unless --help was given
 			    if [[ "\$1" != "--help" ]]; then
 			      termux-wake-lock
-			      if \$use_debug; then
-			          rm -rf ~/.config/pulse/*-runtime/pid
-			      else
-			          rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
-			      fi
-			      # pulseaudio --start --load="module-aaudio-sink" --exit-idle-time=-1
-			      pulseaudio --start --exit-idle-time=-1
+			      start_pulseaudio
 			      pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
 			      if \$use_debug; then
 			        pactl load-module module-sles-source
@@ -3937,13 +3954,7 @@ function setup_tx11start_cmd() {
 			    # Start pulseaudio unless --help was given
 			    if [[ "\$1" != "--help" ]]; then
 			      termux-wake-lock
-			      if \$use_debug; then
-			          rm -rf ~/.config/pulse/*-runtime/pid
-			      else
-			          rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
-			      fi
-			      # pulseaudio --start --load="module-aaudio-sink" --exit-idle-time=-1
-			      pulseaudio --start --exit-idle-time=-1
+			      start_pulseaudio
 			      pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
 			      if \$use_debug; then
 			        pactl load-module module-sles-source
@@ -4163,9 +4174,8 @@ function gui_termux_x11() {
 		forward_display() {
 		    print_msg "Starting display on: \${given_ip}:\${display_port} \${NC}"
 		    pkill -9 "$de_startup" >/dev/null 2>&1
-		    pulseaudio --start --exit-idle-time=-1
+		    start_pulseaudio
 		    pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
-		    rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
 		    pactl load-module module-sles-source >/dev/null 2>&1
 		    export XDG_RUNTIME_DIR=$TERMUX_PREFIX/tmp
 		    mkdir -p "\$XDG_RUNTIME_DIR"
@@ -4245,9 +4255,8 @@ function gui_both() {
 		forward_display() {
 		    print_msg "Starting display on: \${given_ip}:\${display_port}"
 		    pkill -9 "$de_startup" >/dev/null 2>&1
-		    pulseaudio --start --exit-idle-time=-1
+		    start_pulseaudio
 		    pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
-		    rm -rf ~/.config/pulse/*-runtime/pid >/dev/null 2>&1
 		    pactl load-module module-sles-source >/dev/null 2>&1
 		    export XDG_RUNTIME_DIR=$TERMUX_PREFIX/tmp
 		    mkdir -p "\$XDG_RUNTIME_DIR"
@@ -5087,7 +5096,7 @@ function add_common_function() {
 		NC="$NC"
 		BOLD="$BOLD"
 	EOF
-	typeset -f check_termux log_debug print_success print_failed print_warn print_msg wait_for_keypress check_and_create_directory check_and_delete check_and_backup download_file check_and_restore detect_package_manager package_install_and_check install_package_with_retry package_check_and_remove remove_package_with_retry get_file_name_number extract_zip_with_progress extract_archive download_and_extract count_subfolders confirmation_y_or_n get_latest_release install_font_for_style select_an_option read_conf print_to_config >>"$TERMUX_PREFIX/etc/termux-desktop/common_functions"
+	typeset -f check_termux log_debug print_success print_failed print_warn print_msg start_pulseaudio wait_for_keypress check_and_create_directory check_and_delete check_and_backup download_file check_and_restore detect_package_manager package_install_and_check install_package_with_retry package_check_and_remove remove_package_with_retry get_file_name_number extract_zip_with_progress extract_archive download_and_extract count_subfolders confirmation_y_or_n get_latest_release install_font_for_style select_an_option read_conf print_to_config >>"$TERMUX_PREFIX/etc/termux-desktop/common_functions"
 	chmod +x "$TERMUX_PREFIX/etc/termux-desktop/common_functions"
 }
 
