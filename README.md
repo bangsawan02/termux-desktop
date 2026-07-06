@@ -94,13 +94,7 @@
 bash <(curl -Lf https://raw.githubusercontent.com/bangsawan02/termux-desktop/main/setup-termux-desktop)
 ```
 
-#### Or:
 
-- Link shortened using open source link shortener: https://kutt.it/
-
-```bash
-bash <(curl -Lf https://kutt.it/setup-termux-desktop)
-```
 
 > [!TIP]
 > You can also do a lite install which will not install all the optional packages. To do that, first run `export LITE=true` or `export LITE=1`, then run the installer
