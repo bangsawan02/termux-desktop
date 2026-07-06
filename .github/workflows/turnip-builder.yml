@@ -86,6 +86,15 @@ jobs:
             zip git cmake ccache python3-mako glslang-tools
           sudo apt build-dep mesa -y
 
+      - name: Cache ccache
+        uses: actions/cache@v4
+        if: always()
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
       - name: Build Turnip for aarch64
         env:
           MESA_VERSION: ${{ needs.validate-inputs.outputs.mesa_version }}
@@ -152,6 +161,15 @@ jobs:
             meson ninja-build patchelf unzip curl python3-pip flex bison \
             zip git cmake ccache python3-mako glslang-tools
           sudo apt build-dep mesa -y
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        if: always()
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
 
       - name: Build Turnip for arm
         env:

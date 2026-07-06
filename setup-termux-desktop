@@ -675,7 +675,7 @@ count_subfolders() {
 function confirmation_y_or_n() {
 	while true; do
 		# prompt
-		read -r -p "${R}[${C}-${R}]${Y} $1 ${Y}(y/n) ${NC}" response
+		read -r -p "${R}[${C}-${R}]${Y} $1 ${Y}[y/n] ${NC}" response
 		# apply default
 		response="${response:-y}"
 		# lowercase
