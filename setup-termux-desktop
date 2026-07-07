@@ -110,7 +110,7 @@ function debug_msg() {
 }
 
 function banner() {
-	clear
+
 	printf "%s############################################################\n" "$C"
 	printf "%s#                                                          #\n" "$C"
 	printf "%s#  ▀█▀ █▀▀ █▀█ █▀▄▀█ █ █ ▀▄▀   █▀▄ █▀▀ █▀ █▄▀ ▀█▀ █▀█ █▀█  #\n" "$C"
@@ -2633,7 +2633,7 @@ function check_github_rate_limit() {
 function check_system_requirements() {
 	while true; do
 		local errors=0
-		clear
+
 
 		# Disable keyboard interruptions
 		trap '' SIGINT SIGTSTP
@@ -4714,7 +4714,7 @@ function setup_zsh() {
 	if [[ -f "$TERMUX_HOME/.zshrc" ]]; then
 		print_success "zsh setup successfully"
 	fi
-	clear
+
 	print_to_config "selected_zsh_theme_name"
 }
 
@@ -4735,7 +4735,7 @@ function setup_bash() {
 	if [[ -f "$TERMUX_HOME/.bashrc" ]]; then
 		print_success "bash setup successfully"
 	fi
-	clear
+
 }
 
 function setup_shell() {
@@ -5338,7 +5338,7 @@ function remove_termux_desktop() {
 				check_and_delete "${PREFIX}/share/applications/org.sabamdarif.termux.appstore.desktop"
 			fi
 			check_and_delete "$TERMUX_PREFIX/etc/termux-desktop $TERMUX_PREFIX/bin/setup-termux-desktop"
-			clear
+
 			print_msg "${BOLD}Everything remove successfully"
 		fi
 	fi
