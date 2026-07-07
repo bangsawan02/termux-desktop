@@ -5544,7 +5544,7 @@ function change_distro() {
 			fi
 
 			if [[ "$selected_distro_type" == "chroot" ]]; then
-				if ! timeout 3s su -c "ls /data/local/chroot-distro/installed-rootfs/$selected_distro" >/dev/null 2>&1; then
+				if ! timeout 3s su -c "ls $TERMUX_PREFIX/var/lib/chroot-distro/containers/$selected_distro/rootfs" >/dev/null 2>&1; then
 					print_failed "${selected_distro} isn't installed"
 					add_distro_again
 					exit 0

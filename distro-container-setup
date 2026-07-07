@@ -194,7 +194,7 @@ function set_distro_paths {
 	if [[ "$selected_distro_type" == "proot" ]]; then
 		distro_path="$TERMUX_PREFIX/var/lib/proot-distro/installed-rootfs/$selected_distro"
 	elif [[ "$selected_distro_type" == "chroot" ]]; then
-		distro_path="/data/local/chroot-distro/installed-rootfs/$selected_distro"
+		distro_path="$TERMUX_PREFIX/var/lib/chroot-distro/containers/$selected_distro/rootfs"
 	else
 		print_failed "Unable to determine what distro type to use"
 		print_msg "Fallback to:- proot-distro"
@@ -2372,7 +2372,7 @@ function install_distro_container() {
 #########################################################################
 
 function chroot_distro_container_install_check() {
-	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls /data/local/chroot-distro/installed-rootfs/$selected_distro" &>/dev/null; then
+	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls $TERMUX_PREFIX/var/lib/chroot-distro/containers/$selected_distro/rootfs" &>/dev/null; then
 		echo
 		print_success "${BOLD} $selected_distro container setup successfully"
 	else
@@ -2383,7 +2383,7 @@ function chroot_distro_container_install_check() {
 			echo
 			print_msg "Trying again... (Attempt $((retry_count + 1)) of $max_retries)"
 			install_distro_container
-			if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls /data/local/chroot-distro/installed-rootfs/$selected_distro" &>/dev/null; then
+			if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls $TERMUX_PREFIX/var/lib/chroot-distro/containers/$selected_distro/rootfs" &>/dev/null; then
 				echo
 				print_success "${BOLD} $selected_distro container setup successfully"
 				break
