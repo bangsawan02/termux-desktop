@@ -417,7 +417,6 @@ function create_shell_script() {
 	if [[ ! -f "$script_path" ]]; then
 			print_failed "Failed to create script at $script_path"
 		fi
-	fi
 }
 
 #################
@@ -471,9 +470,7 @@ function distro_fix_sound_issue() {
 	create_shell_script "$save_path/install_audio_related_packs.sh" "$install_audio_related_packs"
 	"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/install_audio_related_packs.sh'
 	if [[ "$selected_distro_type" == "chroot" ]]; then
-	if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
-		echo "export PULSE_SERVER=127.0.0.1" >>"$distro_path/etc/profile"
-	fi
+		if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
 			echo "export PULSE_SERVER=127.0.0.1" | tee -a "$distro_path/etc/profile" >/dev/null
 		fi
 	else
