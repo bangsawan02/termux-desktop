@@ -2472,9 +2472,156 @@ check_termux
 # -> in somepart part of the main setup script
 # you just want to source all the functions
 # but don't want to run the entire setup process
+function install_distro_de_and_apps() {
+	if [[ ! -f "$TERMUX_PREFIX/bin/$selected_distro" ]]; then
+		return 0
+	fi
+	read_conf
+	print_msg "${BOLD}Installing chosen Desktop Environment ($de_name) and apps inside the distro container..."
+
+	local de_packages=""
+	local extra_packages=""
+
+	if [[ "$selected_distro" == "ubuntu" ]] || [[ "$selected_distro" == "debian" ]]; then
+		# Debian/Ubuntu Packages
+		case "$de_name" in
+			xfce) de_packages="xfce4 xfce4-goodies dbus-x11" ;;
+			lxqt) de_packages="lxqt openbox dbus-x11" ;;
+			openbox) de_packages="openbox polybar lxappearance feh rofi dbus-x11" ;;
+			mate) de_packages="mate-desktop-environment dbus-x11" ;;
+			i3wm) de_packages="i3-wm rofi feh dbus-x11" ;;
+			dwm) de_packages="dwm dbus-x11" ;;
+			bspwm) de_packages="bspwm sxhkd lxappearance feh rofi nemo dbus-x11" ;;
+			wmaker) de_packages="wmaker lxappearance nemo dbus-x11" ;;
+			awesome) de_packages="awesome dbus-x11" ;;
+			fluxbox) de_packages="fluxbox lxappearance feh rofi dbus-x11" ;;
+			icewm) de_packages="icewm dbus-x11" ;;
+			gnome) de_packages="gnome-shell gnome-session dbus-x11" ;;
+			*) de_packages="xfce4 xfce4-goodies dbus-x11" ;;
+		esac
+
+		if [[ "$installed_media_player" == "mpv" || "$installed_media_player" == "all" ]]; then
+			extra_packages+=" mpv"
+		fi
+		if [[ "$installed_media_player" == "audacious" || "$installed_media_player" == "all" ]]; then
+			extra_packages+=" audacious"
+		fi
+		if [[ "$installed_photo_editor" == "gimp" || "$installed_photo_editor" == "all" ]]; then
+			extra_packages+=" gimp"
+		fi
+
+	elif [[ "$selected_distro" == "fedora" ]]; then
+		# Fedora Packages
+		case "$de_name" in
+			xfce) de_packages="@xfce-desktop-environment dbus-x11" ;;
+			lxqt) de_packages="@lxqt-desktop-environment dbus-x11" ;;
+			openbox) de_packages="openbox polybar lxappearance feh rofi dbus-x11" ;;
+			mate) de_packages="@mate-desktop-environment dbus-x11" ;;
+			i3wm) de_packages="i3-wm rofi feh dbus-x11" ;;
+			dwm) de_packages="dwm dbus-x11" ;;
+			bspwm) de_packages="bspwm sxhkd lxappearance feh rofi nemo dbus-x11" ;;
+			awesome) de_packages="awesome dbus-x11" ;;
+			fluxbox) de_packages="fluxbox dbus-x11" ;;
+			icewm) de_packages="icewm dbus-x11" ;;
+			*) de_packages="@xfce-desktop-environment dbus-x11" ;;
+		esac
+
+		if [[ "$installed_media_player" == "mpv" || "$installed_media_player" == "all" ]]; then
+			extra_packages+=" mpv"
+		fi
+		if [[ "$installed_media_player" == "audacious" || "$installed_media_player" == "all" ]]; then
+			extra_packages+=" audacious"
+		fi
+		if [[ "$installed_photo_editor" == "gimp" || "$installed_photo_editor" == "all" ]]; then
+			extra_packages+=" gimp"
+		fi
+
+	elif [[ "$selected_distro" == "archlinux" ]]; then
+		# Arch Linux Packages
+		case "$de_name" in
+			xfce) de_packages="xfce4 xfce4-goodies dbus" ;;
+			lxqt) de_packages="lxqt openbox dbus" ;;
+			openbox) de_packages="openbox polybar lxappearance feh rofi dbus" ;;
+			mate) de_packages="mate mate-extra dbus" ;;
+			i3wm) de_packages="i3-wm rofi feh dbus" ;;
+			dwm) de_packages="dwm dbus" ;;
+			bspwm) de_packages="bspwm sxhkd lxappearance feh rofi nemo dbus" ;;
+			awesome) de_packages="awesome dbus" ;;
+			fluxbox) de_packages="fluxbox dbus" ;;
+			icewm) de_packages="icewm dbus" ;;
+			*) de_packages="xfce4 xfce4-goodies dbus" ;;
+		esac
+
+		if [[ "$installed_media_player" == "mpv" || "$installed_media_player" == "all" ]]; then
+			extra_packages+=" mpv"
+		fi
+		if [[ "$installed_media_player" == "audacious" || "$installed_media_player" == "all" ]]; then
+			extra_packages+=" audacious"
+		fi
+		if [[ "$installed_photo_editor" == "gimp" || "$installed_photo_editor" == "all" ]]; then
+			extra_packages+=" gimp"
+		fi
+	fi
+
+	# Install Desktop Environment
+	if [[ -n "$de_packages" ]]; then
+		print_msg "${BOLD}Installing Desktop Packages: $de_packages"
+		"$TERMUX_PREFIX/bin/$selected_distro" install $de_packages
+	fi
+
+	# Install Extra Packages
+	if [[ -n "$extra_packages" ]]; then
+		print_msg "${BOLD}Installing Extra Apps Packages: $extra_packages"
+		"$TERMUX_PREFIX/bin/$selected_distro" install $extra_packages
+	fi
+
+	# Install VS Code if requested
+	if [[ "$installed_ide" == "code" || "$installed_ide" == "all" ]]; then
+		print_msg "${BOLD}Installing VS Code (code) inside the distro container..."
+		if [[ "$selected_distro" == "ubuntu" ]] || [[ "$selected_distro" == "debian" ]]; then
+			pd_vscode_setup=$(
+				cat <<-EOF
+					apt update
+					apt install -y curl gpg apt-transport-https
+					curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft.gpg
+					echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+					apt update
+					apt install -y code
+					check_and_delete "vscode_setup.sh"
+				EOF
+			)
+			create_shell_script "$save_path/vscode_setup.sh" "$pd_vscode_setup"
+			"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/vscode_setup.sh'
+		elif [[ "$selected_distro" == "archlinux" ]]; then
+			pd_vscode_setup=$(
+				cat <<-EOF
+					pacman -Sy --noconfirm code
+					check_and_delete "vscode_setup.sh"
+				EOF
+			)
+			create_shell_script "$save_path/vscode_setup.sh" "$pd_vscode_setup"
+			"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/vscode_setup.sh'
+		elif [[ "$selected_distro" == "fedora" ]]; then
+			pd_vscode_setup=$(
+				cat <<-EOF
+					rpm --import https://packages.microsoft.com/keys/microsoft.asc
+					echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/vscode.repo
+					dnf check-update
+					dnf install -y code
+					check_and_delete "vscode_setup.sh"
+				EOF
+			)
+			create_shell_script "$save_path/vscode_setup.sh" "$pd_vscode_setup"
+			"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/vscode_setup.sh'
+		fi
+	fi
+}
+
 function run_distro_container_setup_main() {
 	install_distro_container
 	distro_container_install_check
+
+	install_distro_de_and_apps
 
 	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]]; then
 		read_conf

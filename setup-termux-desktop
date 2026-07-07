@@ -2892,6 +2892,11 @@ function recheck_basic_packages() {
 }
 
 function install_desktop() {
+	if [[ "$distro_add_answer" == "y" ]]; then
+		print_msg "${Y}Distro container is enabled. Desktop environment installation will be performed inside the Linux distro container instead of the Termux host.${NC}"
+		sleep 1
+		return 0
+	fi
 	log_debug "Starting desktop installation" "Desktop: $de_name"
 	banner
 	if [[ "$de_name" == "xfce" ]]; then
@@ -3749,6 +3754,7 @@ function setup_tx11start_cmd() {
 			    use_legacy=false
 			    use_debug=false
 			    de_startup="$de_startup"
+			    distro_add_answer="$distro_add_answer"
 
 			    # Function to show help
 			    function show_tx11start_help() {
@@ -3862,17 +3868,25 @@ function setup_tx11start_cmd() {
 			    sleep 1
 
 			    # Start the desktop environment
-			    if \$use_nodbus; then
+			    if [[ "\$distro_add_answer" == "y" ]]; then
 			      if \$use_debug; then
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup &
+			        pdrun dbus-launch --exit-with-session \$de_startup &
 			      else
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup >/dev/null 2>&1 &
+			        pdrun dbus-launch --exit-with-session \$de_startup >/dev/null 2>&1 &
 			      fi
 			    else
-			      if \$use_debug; then
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup &
+			      if \$use_nodbus; then
+			        if \$use_debug; then
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup &
+			        else
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup >/dev/null 2>&1 &
+			        fi
 			      else
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup >/dev/null 2>&1 &
+			        if \$use_debug; then
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup &
+			        else
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup >/dev/null 2>&1 &
+			        fi
 			      fi
 			    fi
 
@@ -3904,6 +3918,7 @@ function setup_tx11start_cmd() {
 			    use_legacy=false
 			    use_debug=false
 			    de_startup="$de_startup"
+			    distro_add_answer="$distro_add_answer"
 
 			    # Function to show help
 				function show_tx11start_help() {
@@ -3993,17 +4008,25 @@ function setup_tx11start_cmd() {
 			    sleep 1
 
 			    # Start the desktop environment
-			    if \$use_nodbus; then
+			    if [[ "\$distro_add_answer" == "y" ]]; then
 			      if \$use_debug; then
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup &
+			        pdrun dbus-launch --exit-with-session \$de_startup &
 			      else
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup >/dev/null 2>&1 &
+			        pdrun dbus-launch --exit-with-session \$de_startup >/dev/null 2>&1 &
 			      fi
 			    else
-			      if \$use_debug; then
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup &
+			      if \$use_nodbus; then
+			        if \$use_debug; then
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup &
+			        else
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg \$de_startup >/dev/null 2>&1 &
+			        fi
 			      else
-			        env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup >/dev/null 2>&1 &
+			        if \$use_debug; then
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup &
+			        else
+			          env DISPLAY=:${display_number} XDG_CONFIG_DIRS=$TERMUX_PREFIX/etc/xdg dbus-launch --exit-with-session \$de_startup >/dev/null 2>&1 &
+			        fi
 			      fi
 			    fi
 
@@ -4151,6 +4174,9 @@ function setup_termux_x11() {
 	print_msg "${BOLD}Configuring Termux:X11"
 	echo
 	package_install_and_check "termux-x11-nightly"
+	if [[ "$distro_add_answer" == "y" ]]; then
+		package_install_and_check "pulseaudio xorg-xhost"
+	fi
 	# "sed -i '12s/^#//' "$TERMUX_HOME/.termux/termux.properties"
 	setup_tx11start_cmd
 	setup_tx11stop_cmd
@@ -4377,48 +4403,52 @@ function gui_launcher() {
 function check_desktop_process_list() {
 	# check for the desktop environment related process
 	local de_pid
+	local cmd_prefix=""
+	if [[ "$distro_add_answer" == "y" ]]; then
+		cmd_prefix="pdrun "
+	fi
 	case "$de_name" in
 	xfce)
-		de_pid="$(pgrep xfce4)"
+		de_pid="$(${cmd_prefix}pgrep xfce4)"
 		;;
 	lxqt)
-		de_pid="$(pgrep -f "lxqt-session|lxqt-panel")"
+		de_pid="$(${cmd_prefix}pgrep -f "lxqt-session|lxqt-panel")"
 		;;
 	gnome)
-		de_pid="$(pgrep -f "gnome-shell|gnome-session")"
+		de_pid="$(${cmd_prefix}pgrep -f "gnome-shell|gnome-session")"
 		;;
 	cinnamon)
-		de_pid="$(pgrep -f "cinnamon-session")"
+		de_pid="$(${cmd_prefix}pgrep -f "cinnamon-session")"
 		;;
 	plasma)
-		de_pid="$(pgrep -f "startplasma-x11")"
+		de_pid="$(${cmd_prefix}pgrep -f "startplasma-x11")"
 		;;
 	openbox)
-		de_pid="$(pgrep -f "openbox|openbox-session")"
+		de_pid="$(${cmd_prefix}pgrep -f "openbox|openbox-session")"
 		;;
 	mate)
-		de_pid="$(pgrep -f "mate-session|mate-panel")"
+		de_pid="$(${cmd_prefix}pgrep -f "mate-session|mate-panel")"
 		;;
 	i3wm)
-		de_pid="$(pgrep -f "i3|i3-with-shmlog")"
+		de_pid="$(${cmd_prefix}pgrep -f "i3|i3-with-shmlog")"
 		;;
 	dwm)
-		de_pid="$(pgrep dwm)"
+		de_pid="$(${cmd_prefix}pgrep dwm)"
 		;;
 	bspwm)
-		de_pid="$(pgrep bspwm)"
+		de_pid="$(${cmd_prefix}pgrep bspwm)"
 		;;
 	awesome)
-		de_pid="$(pgrep -f awesome)"
+		de_pid="$(${cmd_prefix}pgrep -f awesome)"
 		;;
 	fluxbox)
-		de_pid="$(pgrep -f fluxbox)"
+		de_pid="$(${cmd_prefix}pgrep -f fluxbox)"
 		;;
 	icewm)
-		de_pid="$(pgrep -f icewm-session)"
+		de_pid="$(${cmd_prefix}pgrep -f icewm-session)"
 		;;
 	wmaker)
-		de_pid="$(pgrep -f "wmaker")"
+		de_pid="$(${cmd_prefix}pgrep -f "wmaker")"
 		;;
 	*)
 		print_failed "Unknown desktop environment: $de_name"
@@ -4437,7 +4467,11 @@ function check_desktop_process() {
 	if [[ -f "${PREFIX}/bin/tx11start" ]]; then
 		print_success "Found tx11start file."
 		print_msg "Starting Termux:X11 for checkup..."
-		termux-x11 :"${display_number}" -xstartup xfce4-session >/dev/null 2>&1 &
+		if [[ "$distro_add_answer" == "y" ]]; then
+			tx11start >/dev/null 2>&1 &
+		else
+			termux-x11 :"${display_number}" -xstartup xfce4-session >/dev/null 2>&1 &
+		fi
 		sleep 10
 		log_debug "$(cat "$TERMUX_PREFIX/bin/tx11start")"
 		termux-reload-settings
@@ -4572,6 +4606,11 @@ function browser_installer() {
 function ide_installer() {
 	banner
 	print_to_config "installed_ide"
+	if [[ "$distro_add_answer" == "y" ]]; then
+		print_msg "${Y}Distro container is enabled. IDE installation will be performed inside the Linux distro container instead of the Termux host.${NC}"
+		sleep 1
+		return 0
+	fi
 	if [[ ${installed_ide} == "code" ]]; then
 		package_install_and_check "code-oss code-is-code-oss"
 	elif [[ ${installed_ide} == "geany" ]]; then
@@ -4620,6 +4659,11 @@ function ide_installer() {
 function media_player_installer() {
 	banner
 	print_to_config "installed_media_player"
+	if [[ "$distro_add_answer" == "y" ]]; then
+		print_msg "${Y}Distro container is enabled. Media player installation will be performed inside the Linux distro container instead of the Termux host.${NC}"
+		sleep 1
+		return 0
+	fi
 	if [[ ${installed_media_player} == "vlc" ]]; then
 		package_install_and_check "vlc-qt-static"
 	elif [[ ${installed_media_player} == "mpv" ]]; then
@@ -4648,6 +4692,11 @@ function setup_gimp_plugins() {
 function photo_editor_installer() {
 	banner
 	print_to_config "installed_photo_editor"
+	if [[ "$distro_add_answer" == "y" ]]; then
+		print_msg "${Y}Distro container is enabled. Photo editor installation will be performed inside the Linux distro container instead of the Termux host.${NC}"
+		sleep 1
+		return 0
+	fi
 	if [[ ${installed_photo_editor} == "gimp" ]]; then
 		package_install_and_check "gimp"
 		setup_gimp_plugins
@@ -4898,6 +4947,9 @@ function terminal_utility_setup() {
 #
 #########################################################################
 function install_fm_tools() {
+	if [[ "$distro_add_answer" == "y" ]]; then
+		return 0
+	fi
 	if [[ "$fm_tools" == "y" ]]; then
 		banner
 		print_msg "${BOLD}Installing File Manager Tools..."
@@ -4922,6 +4974,9 @@ function install_fm_tools() {
 #########################################################################
 
 function add_usb_auto_mount() {
+	if [[ "$distro_add_answer" == "y" ]]; then
+		return 0
+	fi
 	print_msg "Adding USB auto filemanager bookmarks utility..."
 	download_file "$TERMUX_PREFIX/bin/usb-bookmarks" "$REPO_RAW_URL/refs/heads/$REPO_BRANCH_MAIN/other/usb-bookmarks"
 	chmod +x "$TERMUX_PREFIX/bin/usb-bookmarks"
@@ -4946,6 +5001,9 @@ function add_usb_auto_mount() {
 #########################################################################
 
 function setup_fonts() {
+	if [[ "$distro_add_answer" == "y" ]]; then
+		return 0
+	fi
 	banner
 	print_msg "${BOLD}Installing ${sel_base_name} Nerd Font..."
 
@@ -4999,6 +5057,11 @@ function run_wine_shortcut_script() {
 function setup_wine() {
 	banner
 	print_to_config "installed_wine"
+	if [[ "$distro_add_answer" == "y" ]]; then
+		print_msg "${Y}Distro container is enabled. Wine installation will be skipped on the Termux host.${NC}"
+		sleep 1
+		return 0
+	fi
 	if [[ "$installed_wine" == "stock" ]]; then
 		print_msg "${BOLD}Installing Wine Natively In Termux"
 		echo
@@ -6161,22 +6224,26 @@ function install_termux_desktop() {
 	media_player_installer
 	photo_editor_installer
 	setup_wine
-	if [[ "$style_answer" == "0" ]]; then
-		banner
-		print_msg "${BOLD}Configuring Stock $de_name Style..."
-		echo
-		print_to_config "style_answer"
-		ext_setup_for_stock
+	if [[ "$distro_add_answer" != "y" ]]; then
+		if [[ "$style_answer" == "0" ]]; then
+			banner
+			print_msg "${BOLD}Configuring Stock $de_name Style..."
+			echo
+			print_to_config "style_answer"
+			ext_setup_for_stock
+		else
+			setup_config
+		fi
+		ext_wall_setup
 	else
-		setup_config
+		print_msg "${Y}Distro container is enabled. Skipping style configurations on Termux host.${NC}"
 	fi
-	ext_wall_setup
 	banner
 	add_common_function
 	distro_container_setup
 	gui_launcher
 	terminal_utility_setup
-	if [[ "$selected_distro_type" == "proot" ]]; then
+	if [[ "$selected_distro_type" == "proot" && "$distro_add_answer" != "y" ]]; then
 		install_termux_desktop_appstore
 	fi
 	add_to_autostart
