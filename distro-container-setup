@@ -2475,4 +2475,20 @@ check_termux
 function run_distro_container_setup_main() {
 	install_distro_container
 	distro_container_install_check
+
+	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]]; then
+		read_conf
+		if [[ -n "$installed_browser" && "$installed_browser" != "skip" ]]; then
+			print_msg "${BOLD}Installing chosen browser inside the distro container..."
+			if [[ "$installed_browser" == "firefox" ]]; then
+				"$TERMUX_PREFIX/bin/$selected_distro" install firefox
+			elif [[ "$installed_browser" == "chromium" ]]; then
+				"$TERMUX_PREFIX/bin/$selected_distro" install chromium
+			elif [[ "$installed_browser" == "all" ]]; then
+				"$TERMUX_PREFIX/bin/$selected_distro" install firefox chromium
+			elif [[ "$installed_browser" == "google-chrome-mobox" ]]; then
+				"$TERMUX_PREFIX/bin/$selected_distro" install google-chrome
+			fi
+		fi
+	fi
 }

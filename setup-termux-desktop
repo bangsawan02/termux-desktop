@@ -4508,6 +4508,11 @@ function check_desktop_process() {
 function browser_installer() {
 	banner
 	print_to_config "installed_browser"
+	if [[ "$distro_add_answer" == "y" ]]; then
+		print_msg "${Y}Distro container is enabled. Browser installation will be performed inside the Linux distro container instead of the Termux host.${NC}"
+		sleep 2
+		return 0
+	fi
 	if [[ ${installed_browser} == "firefox" ]]; then
 		package_install_and_check "firefox"
 	elif [[ ${installed_browser} == "chromium" ]]; then
@@ -5903,7 +5908,9 @@ function some_fixes() {
 		disable_vblank_mode
 
 		if [[ "$installed_browser" == "chromium" ]] || [[ "$installed_browser" == "all" ]]; then
-			sed -i "s|Exec=$TERMUX_PREFIX/bin/chromium-browser %U|Exec=$TERMUX_PREFIX/bin/chromium-browser --enable-features=Vulkan %U|" "$TERMUX_PREFIX/share/applications/chromium.desktop"
+			if [[ -f "$TERMUX_PREFIX/share/applications/chromium.desktop" ]]; then
+				sed -i "s|Exec=$TERMUX_PREFIX/bin/chromium-browser %U|Exec=$TERMUX_PREFIX/bin/chromium-browser --enable-features=Vulkan %U|" "$TERMUX_PREFIX/share/applications/chromium.desktop"
+			fi
 		fi
 
 		if [[ "$installed_ide" == "code" ]] || [[ "$installed_ide" == "all" ]]; then
