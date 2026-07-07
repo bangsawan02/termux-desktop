@@ -179,7 +179,7 @@ esac
 
 # 4. Install host tools on Termux
 echo -e "\n${Y}[*] Ensuring Termux host tools are installed...${NC}"
-pkg install -y x11-repo pulseaudio || true
+pkg install -y x11-repo pulseaudio unzip curl || true
 pkg install -y termux-x11-nightly || true
 
 # Check and create chroot-distro wrapper if missing
@@ -267,11 +267,14 @@ fi
 echo -e "\n${Y}[*] Bootstrapping packages inside chroot container...${NC}"
 
 if [[ "$selected_distro" == "debian" || "$selected_distro" == "ubuntu" ]]; then
+	echo -e "${Y}[*] Configuring DNS resolver (resolv.conf) inside container...${NC}"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "rm -f /etc/resolv.conf && echo -e 'nameserver 1.1.1.1\nnameserver 8.8.8.8' > /etc/resolv.conf && chmod 644 /etc/resolv.conf"
+
 	echo -e "${Y}[*] Updating package repositories inside container...${NC}"
-	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt update"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt update"
 
 	echo -e "${Y}[*] Installing sudo and dbus dependencies...${NC}"
-	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt install -y sudo dbus dbus-x11"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt install -y sudo dbus dbus-x11"
 
 	# Desktop environment installation packages
 	case "$de_name" in
@@ -285,7 +288,7 @@ if [[ "$selected_distro" == "debian" || "$selected_distro" == "ubuntu" ]]; then
 	esac
 
 	echo -e "${Y}[*] Installing desktop packages ($de_name)...${NC}"
-	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt install -y $de_packages"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt install -y $de_packages"
 
 	# Browser installation packages
 	browser_packages=""
@@ -297,16 +300,19 @@ if [[ "$selected_distro" == "debian" || "$selected_distro" == "ubuntu" ]]; then
 	fi
 	if [[ -n "$browser_packages" ]]; then
 		echo -e "${Y}[*] Installing browser packages ($installed_browser)...${NC}"
-		chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt install -y $browser_packages"
+		chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt install -y $browser_packages"
 	fi
 
 	# GPU Driver dependencies inside container
 	if [[ "$pd_hw_answer" == "turnip" ]]; then
 		echo -e "${Y}[*] Installing packages required for Turnip driver...${NC}"
-		chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt install -y xdg-desktop-portal libgl1 libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers unzip curl"
+		chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt install -y xdg-desktop-portal libgl1 libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers unzip curl"
 	fi
 
 elif [[ "$selected_distro" == "archlinux" ]]; then
+	echo -e "${Y}[*] Configuring DNS resolver (resolv.conf) inside container...${NC}"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "rm -f /etc/resolv.conf && echo -e 'nameserver 1.1.1.1\nnameserver 8.8.8.8' > /etc/resolv.conf && chmod 644 /etc/resolv.conf"
+
 	echo -e "${Y}[*] Updating package repositories inside container...${NC}"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "pacman -Sy --noconfirm"
 
@@ -343,6 +349,9 @@ elif [[ "$selected_distro" == "archlinux" ]]; then
 	fi
 
 elif [[ "$selected_distro" == "fedora" ]]; then
+	echo -e "${Y}[*] Configuring DNS resolver (resolv.conf) inside container...${NC}"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "rm -f /etc/resolv.conf && echo -e 'nameserver 1.1.1.1\nnameserver 8.8.8.8' > /etc/resolv.conf && chmod 644 /etc/resolv.conf"
+
 	echo -e "${Y}[*] Updating package repositories inside container...${NC}"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "dnf check-update || true"
 
@@ -383,6 +392,8 @@ fi
 if [[ "$final_user_name" != "root" ]]; then
 	echo -e "\n${Y}[*] Configuring non-root user '$final_user_name' inside container...${NC}"
 	# Create groups if they don't exist
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "groupadd -g 3003 aid_inet 2>/dev/null || groupadd -f aid_inet 2>/dev/null || true"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "groupadd -g 3004 aid_net_raw 2>/dev/null || groupadd -f aid_net_raw 2>/dev/null || true"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "groupadd storage 2>/dev/null || true"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "groupadd wheel 2>/dev/null || true"
 	
@@ -392,7 +403,7 @@ if [[ "$final_user_name" != "root" ]]; then
 	fi
 	
 	# Assign secondary groups
-	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "for g in wheel polkitd audio video storage; do groupadd -f \$g 2>/dev/null || true; usermod -aG \$g $final_user_name 2>/dev/null || true; done"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "for g in wheel polkitd audio video storage aid_inet aid_net_raw; do groupadd -f \$g 2>/dev/null || true; usermod -aG \$g $final_user_name 2>/dev/null || true; done"
 	
 	# Set password
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "echo '$final_user_name:$final_pass' | chpasswd"
@@ -415,7 +426,7 @@ if [[ "$pd_hw_answer" == "turnip" ]]; then
 	if [[ -f "$TERMUX_PREFIX/tmp/turnip.zip" ]]; then
 		echo -e "${Y}[*] Installing Turnip driver into Chroot container...${NC}"
 		# We unzip directly into /usr of the container's rootfs (with root access)
-		su -c "unzip -o $TERMUX_PREFIX/tmp/turnip.zip -d $container_rootfs/usr"
+		su -c "env LD_LIBRARY_PATH=$TERMUX_PREFIX/lib PATH=$TERMUX_PREFIX/bin:\$PATH unzip -o $TERMUX_PREFIX/tmp/turnip.zip -d $container_rootfs/usr"
 		rm -f "$TERMUX_PREFIX/tmp/turnip.zip"
 		echo -e "${G}[✓] Turnip driver installed successfully inside Chroot container!${NC}"
 	else
@@ -438,7 +449,11 @@ echo -e "${Y}[*] Creating direct launcher shortcut at $DISTRO_WRAP_BIN...${NC}"
 cat <<-EOF >"$DISTRO_WRAP_BIN"
 	#!/data/data/com.termux/files/usr/bin/bash
 	xhost + >/dev/null 2>&1
-	chroot-distro login --user "$final_user_name" "$selected_distro" --shared-tmp --work-dir "\$PWD"
+	if [ \$# -eq 0 ]; then
+		chroot-distro login --user "$final_user_name" "$selected_distro" --shared-tmp --work-dir "\$PWD"
+	else
+		chroot-distro login --user "$final_user_name" "$selected_distro" --shared-tmp --work-dir "\$PWD" -- "\$@"
+	fi
 EOF
 chmod +x "$DISTRO_WRAP_BIN"
 
