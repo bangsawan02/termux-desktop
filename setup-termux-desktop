@@ -5435,7 +5435,11 @@ function do_hw_changes() {
 			# shellcheck disable=SC2034
 			termux_home_link="--termux-home"
 		fi
-		final_user_name="$user_name"
+		if [[ "$pd_useradd_answer" == "n" || -z "$user_name" ]]; then
+			final_user_name="root"
+		else
+			final_user_name="$user_name"
+		fi
 
 		distro_app_launch_setup
 		check_and_delete "${current_path}/distro-container-setup"

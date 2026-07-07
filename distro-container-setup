@@ -37,7 +37,17 @@ function setup_proot_distro() {
 	print_msg "${BOLD}Setting up Selected Linux Distro: ${C}${selected_distro}"
 	echo
 	print_to_config "selected_distro"
-	pd install "$selected_distro"
+	if [[ -d "$TERMUX_PREFIX/var/lib/proot-distro/installed-rootfs/$selected_distro" ]]; then
+		print_msg "${C}${selected_distro}${Y} is already installed."
+		confirmation_y_or_n "Do you want to reinstall it from scratch (this will delete all container data)" reinstall_ans
+		if [[ "$reinstall_ans" == "y" ]]; then
+			pd install "$selected_distro"
+		else
+			print_msg "Using existing installed ${selected_distro} distro container."
+		fi
+	else
+		pd install "$selected_distro"
+	fi
 }
 
 function check_su_access() {
@@ -184,7 +194,17 @@ function setup_chroot_distro() {
 		su -c "/system/bin/chroot-distro $args"
 	EOF
 	chmod +x "$TERMUX_PREFIX/bin/chroot-distro"
-	chroot-distro install "$selected_distro"
+	if su -c "ls $TERMUX_PREFIX/var/lib/chroot-distro/containers/$selected_distro/rootfs" &>/dev/null; then
+		print_msg "${C}${selected_distro}${Y} is already installed."
+		confirmation_y_or_n "Do you want to reinstall it from scratch (this will delete all container data)" reinstall_ans
+		if [[ "$reinstall_ans" == "y" ]]; then
+			chroot-distro install "$selected_distro"
+		else
+			print_msg "Using existing installed ${selected_distro} distro container."
+		fi
+	else
+		chroot-distro install "$selected_distro"
+	fi
 	print_to_config "selected_distro"
 }
 
