@@ -15,8 +15,11 @@ W='\033[0;37m'
 NC='\033[0m'
 BOLD='\033[1m'
 
+# Configuration Constants
+TERMUX_PREFIX=${PREFIX:-/data/data/com.termux/files/usr}
+TERMUX_HOME=${HOME:-/data/data/com.termux/files/home}
+
 function show_banner() {
-	clear
 	echo -e "${C}${BOLD}=================================================="
 	echo -e "       CHROOT DESKTOP ENVIRONMENT INSTALLER"
 	echo -e "==================================================${NC}"
@@ -252,7 +255,10 @@ fi
 container_rootfs="$TERMUX_PREFIX/var/lib/chroot-distro/containers/$selected_distro/rootfs"
 if ! su -c "ls $container_rootfs" &>/dev/null; then
 	echo -e "${Y}[*] Chroot container '$selected_distro' not found. Installing now...${NC}"
-	chroot-distro install "$selected_distro"
+	if ! chroot-distro install "$selected_distro"; then
+		echo -e "${R}[☓] Failed to install '$selected_distro' via chroot-distro. Please check the logs above.${NC}"
+		exit 1
+	fi
 else
 	echo -e "${G}[✓] Chroot container '$selected_distro' is already installed.${NC}"
 fi
@@ -423,7 +429,7 @@ cat <<-EOF >"$TERMUX_PREFIX/bin/pdrun"
 	#!/data/data/com.termux/files/usr/bin/bash
 	xhost + > /dev/null 2>&1
 	gpu_env="env DISPLAY=\$(echo \$DISPLAY) XDG_RUNTIME_DIR=\${TMPDIR} $pd_hw_method"
-	chroot-distro login "$selected_distro" --shared-tmp --user "$final_user_name" -- env \$gpu_env sh -lc 'exec "\$@"' _ "\$@"
+	chroot-distro login --user "$final_user_name" "$selected_distro" --shared-tmp -- env \$gpu_env sh -lc 'exec "\$@"' _ "\$@"
 EOF
 chmod +x "$TERMUX_PREFIX/bin/pdrun"
 
@@ -432,7 +438,7 @@ echo -e "${Y}[*] Creating direct launcher shortcut at $DISTRO_WRAP_BIN...${NC}"
 cat <<-EOF >"$DISTRO_WRAP_BIN"
 	#!/data/data/com.termux/files/usr/bin/bash
 	xhost + >/dev/null 2>&1
-	chroot-distro login "$selected_distro" --shared-tmp --user "$final_user_name" --work-dir "\$PWD"
+	chroot-distro login --user "$final_user_name" "$selected_distro" --shared-tmp --work-dir "\$PWD"
 EOF
 chmod +x "$DISTRO_WRAP_BIN"
 
