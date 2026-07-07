@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Monitor, 
   Cpu, 
@@ -21,7 +21,8 @@ import {
   BookOpen, 
   HelpCircle,
   Code,
-  FolderSync
+  FolderSync,
+  RefreshCw
 } from 'lucide-react';
 
 interface SetupConfig {
@@ -88,10 +89,108 @@ export default function App() {
     pd_pass_type: '1'
   });
 
-  const [activeTab, setActiveTab] = useState<'configure' | 'reference' | 'requirements'>('configure');
+  const [activeTab, setActiveTab] = useState<'configure' | 'reference' | 'requirements' | 'git'>('configure');
   const [copiedConf, setCopiedConf] = useState(false);
   const [copiedCommand, setCopiedCommand] = useState(false);
   const [copiedGeneral, setCopiedGeneral] = useState<string | null>(null);
+
+  // Git management states
+  const [gitStatus, setGitStatus] = useState<{ branch: string; modified: string[]; untracked: string[]; raw: string } | null>(null);
+  const [gitLoading, setGitLoading] = useState(false);
+  const [gitCommitMessage, setGitCommitMessage] = useState('update setup scripts');
+  const [gitLog, setGitLog] = useState('');
+  const [gitError, setGitError] = useState('');
+  const [gitSuccess, setGitSuccess] = useState('');
+
+  const fetchGitStatus = async () => {
+    setGitLoading(true);
+    setGitError('');
+    setGitSuccess('');
+    try {
+      const res = await fetch('/api/git/status');
+      const data = await res.json();
+      if (data.success) {
+        setGitStatus(data);
+        if (data.raw) setGitLog(data.raw);
+      } else {
+        setGitError(data.error || 'Failed to fetch git status');
+      }
+    } catch (err: any) {
+      setGitError(err.message || 'Network error fetching status');
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  const handleGitPush = async () => {
+    setGitLoading(true);
+    setGitError('');
+    setGitSuccess('');
+    try {
+      const res = await fetch('/api/git/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commitMessage: gitCommitMessage,
+          files: [] // Empty list to default to adding everything ('.')
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGitSuccess('Successfully committed and pushed changes to GitHub origin!');
+        setGitLog(data.output);
+        // Refresh status
+        const statusRes = await fetch('/api/git/status');
+        const statusData = await statusRes.json();
+        if (statusData.success) {
+          setGitStatus(statusData);
+        }
+      } else {
+        setGitError(data.error || 'Failed to push changes');
+        if (data.output) setGitLog(data.output);
+      }
+    } catch (err: any) {
+      setGitError(err.message || 'Network error pushing changes');
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  const handleGitFix = async () => {
+    if (!window.confirm('Are you sure you want to fix and repair the local .git directory? This will fetch a fresh copy of the .git tracking folder from GitHub.')) {
+      return;
+    }
+    setGitLoading(true);
+    setGitError('');
+    setGitSuccess('');
+    try {
+      const res = await fetch('/api/git/fix', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setGitSuccess('Successfully repaired the git repository! Your local tracking is restored.');
+        setGitLog(data.output);
+        // Refresh status
+        const statusRes = await fetch('/api/git/status');
+        const statusData = await statusRes.json();
+        if (statusData.success) {
+          setGitStatus(statusData);
+        }
+      } else {
+        setGitError(data.error || 'Failed to repair git repository');
+        if (data.output) setGitLog(data.output);
+      }
+    } catch (err: any) {
+      setGitError(err.message || 'Network error repairing repository');
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'git') {
+      fetchGitStatus();
+    }
+  }, [activeTab]);
 
   // Generate configuration file content
   const configurationConfContent = useMemo(() => {
@@ -230,6 +329,17 @@ export default function App() {
             id="tab-requirements"
           >
             Requirements
+          </button>
+          <button
+            onClick={() => setActiveTab('git')}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeTab === 'git' 
+                ? 'bg-[#00796b] text-white shadow-sm' 
+                : 'text-[#80cbc4] hover:text-white'
+            }`}
+            id="tab-git"
+          >
+            Git Sync
           </button>
         </div>
       </header>
@@ -1020,6 +1130,148 @@ export default function App() {
               </p>
               <div className="p-2.5 bg-[#1e293b] text-slate-200 rounded-lg font-mono text-[11px] mt-1 overflow-x-auto select-all">
                 adb shell "/system/bin/device_config put activity_manager max_phantom_processes 2147483647"
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'git' && (
+          <div className="flex-1 bg-white rounded-3xl p-6 shadow-xs border border-gray-100 space-y-6 animate-fade-in" id="git-sync-pane">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <FolderSync className="w-5 h-5 text-[#00796b]" /> Git Push & Synchronization
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Synchronize your customizer settings, setup scripts, and distro modifications with GitHub
+                </p>
+              </div>
+              <button
+                onClick={fetchGitStatus}
+                disabled={gitLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${gitLoading ? 'animate-spin' : ''}`} />
+                Refresh Status
+              </button>
+            </div>
+
+            {/* Error & Success Messages */}
+            {gitError && (
+              <div className="p-4 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-medium space-y-1">
+                <p className="font-bold">Error Encountered:</p>
+                <p>{gitError}</p>
+              </div>
+            )}
+            {gitSuccess && (
+              <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl text-xs font-medium">
+                {gitSuccess}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Repository Status & Commit Controls */}
+              <div className="space-y-6">
+                {/* Repository Status */}
+                <div className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 font-bold">Current Branch:</span>
+                    <span className="text-xs font-mono font-bold bg-[#00796b]/10 text-[#00796b] px-2 py-0.5 rounded-md">
+                      {gitStatus?.branch || 'main'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-xs text-gray-500 font-bold block">Local Changes:</span>
+                    
+                    {gitLoading && !gitStatus ? (
+                      <div className="text-xs text-gray-400 italic py-2">Loading repository status...</div>
+                    ) : (!gitStatus?.modified.length && !gitStatus?.untracked.length) ? (
+                      <div className="text-xs text-gray-500 italic py-2 flex items-center gap-1.5">
+                        <Check className="w-4 h-4 text-emerald-600 font-bold" /> Everything is clean & up to date with main
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {gitStatus?.modified.map(file => (
+                          <div key={file} className="flex justify-between items-center text-xs p-1.5 bg-yellow-50 border border-yellow-100/50 rounded-lg">
+                            <span className="font-mono text-gray-700 truncate max-w-[70%]">{file}</span>
+                            <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100/60 px-1.5 py-0.5 rounded">Modified</span>
+                          </div>
+                        ))}
+                        {gitStatus?.untracked.map(file => (
+                          <div key={file} className="flex justify-between items-center text-xs p-1.5 bg-emerald-50 border border-emerald-100/50 rounded-lg">
+                            <span className="font-mono text-gray-700 truncate max-w-[70%]">{file}</span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded">Untracked</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Commit & Push Form */}
+                <div className="space-y-3">
+                  <label className="text-xs text-gray-700 font-bold block">Commit Message</label>
+                  <input
+                    type="text"
+                    value={gitCommitMessage}
+                    onChange={(e) => setGitCommitMessage(e.target.value)}
+                    placeholder="e.g. update setup configurations"
+                    className="w-full bg-gray-50 border border-gray-200 hover:border-gray-300 focus:border-[#00796b] focus:bg-white rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 outline-hidden transition-all"
+                  />
+                  <button
+                    onClick={handleGitPush}
+                    disabled={gitLoading || (!gitStatus?.modified.length && !gitStatus?.untracked.length)}
+                    className="w-full bg-[#00796b] hover:bg-[#004d40] text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {gitLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Synchronizing...
+                      </>
+                    ) : (
+                      'Commit & Push Changes'
+                    )}
+                  </button>
+                  <p className="text-[10px] text-gray-400 italic text-center">
+                    This stages all modified files, commits them, and pushes directly to GitHub main branch.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Terminal Logs & Auto-Repair */}
+              <div className="space-y-4 flex flex-col justify-between">
+                <div className="space-y-2 flex-1 flex flex-col">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs text-gray-700 font-bold block">Git Console Output</label>
+                    <button 
+                      onClick={() => setGitLog('')}
+                      className="text-[10px] text-gray-400 hover:text-gray-600 font-semibold"
+                    >
+                      Clear Logs
+                    </button>
+                  </div>
+                  <pre className="flex-1 min-h-[180px] max-h-[240px] lg:max-h-none bg-[#1e293b] text-[#38bdf8] p-3.5 rounded-2xl font-mono text-[11px] overflow-auto whitespace-pre-wrap select-all">
+                    {gitLog || '$ Ready. Action logs will be displayed here.'}
+                  </pre>
+                </div>
+
+                {/* Git Auto-Repair utility */}
+                <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-2">
+                  <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-amber-700" /> Git Repository Health Check
+                  </h4>
+                  <p className="text-[11px] text-gray-700 leading-relaxed font-medium">
+                    If you encounter corrupt index or loose object format errors (e.g. <code>fatal: unknown index entry format</code>), click repair to automatically pull a fresh tracking directory.
+                  </p>
+                  <button
+                    onClick={handleGitFix}
+                    disabled={gitLoading}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                  >
+                    Repair & Heal Git Repository
+                  </button>
+                </div>
               </div>
             </div>
           </div>

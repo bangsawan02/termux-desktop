@@ -1,3 +1,7 @@
 .github/scripts/turnip_workdir
--e node_modules
+node_modules
 dist
+.env
+*.log
+server.js
+dist/server.cjs
