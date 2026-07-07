@@ -869,7 +869,7 @@ function chroot_distro_debian_based_app_installer() {
 		            if curl -Lf "\$chrome_installer_url" -o "\$temp_installer"; then
 		                print_success "Download complete."
 		                print_msg "Running installer under Mobox/Wine..."
-		                wine "\$temp_installer"
+		                wine msiexec /i "\$temp_installer" /q
 		                print_success "Google Chrome installation initiated under Mobox."
 		                
 		                # Create a desktop entry for Google Chrome via Mobox/Wine
@@ -899,7 +899,7 @@ function chroot_distro_debian_based_app_installer() {
 		    set -- "\${new_args[@]}"
 
 		    # Create the packinstall.sh script
-		    cat > "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
+		    cat > "${save_root_path}/packinstall.sh" <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -963,7 +963,7 @@ function chroot_distro_debian_based_app_installer() {
 		    # Handle remove package and remove from menu part #
 		    ###################################################
 		    # Create the packremove.sh script
-		    cat > "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
+		    cat > "${save_root_path}/packremove.sh" <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1210,7 +1210,7 @@ function chroot_distro_arch_based_app_installer() {
 		            if curl -Lf "\$chrome_installer_url" -o "\$temp_installer"; then
 		                print_success "Download complete."
 		                print_msg "Running installer under Mobox/Wine..."
-		                wine "\$temp_installer"
+		                wine msiexec /i "\$temp_installer" /q
 		                print_success "Google Chrome installation initiated under Mobox."
 		                
 		                # Create a desktop entry for Google Chrome via Mobox/Wine
@@ -1258,7 +1258,7 @@ function chroot_distro_arch_based_app_installer() {
 		    chroot-distro login "${selected_distro}" --shared-tmp -- env DISPLAY=:${display_number} sudo pacman -S"\${options[@]}" --noconfirm "\${packages[@]}"
 
 		    # Create the packinstall.sh script
-		    cat > "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
+		    cat > "${save_root_path}/packinstall.sh" <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1309,7 +1309,7 @@ function chroot_distro_arch_based_app_installer() {
 		    done
 
 		    # Create the packremove.sh script
-		    cat > "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
+		    cat > "${save_root_path}/packremove.sh" <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1545,7 +1545,7 @@ function chroot_distro_fedora_based_app_installer() {
 		            if curl -Lf "\$chrome_installer_url" -o "\$temp_installer"; then
 		                print_success "Download complete."
 		                print_msg "Running installer under Mobox/Wine..."
-		                wine "\$temp_installer"
+		                wine msiexec /i "\$temp_installer" /q
 		                print_success "Google Chrome installation initiated under Mobox."
 		                
 		                # Create a desktop entry for Google Chrome via Mobox/Wine
@@ -1575,7 +1575,7 @@ function chroot_distro_fedora_based_app_installer() {
 		    set -- "\${new_args[@]}"
 
 		    # Create the packinstall.sh script
-		    cat > "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
+		    cat > "${save_root_path}/packinstall.sh" <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1636,7 +1636,7 @@ function chroot_distro_fedora_based_app_installer() {
 		    # Handle remove package and remove from menu part #
 		    ###################################################
 		    # Create the packremove.sh script
-		    cat > "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
+		    cat > "${save_root_path}/packremove.sh" <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
