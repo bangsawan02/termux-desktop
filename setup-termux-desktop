@@ -4519,14 +4519,14 @@ function browser_installer() {
 		if [[ ! -f "$TERMUX_PREFIX/bin/wine" ]]; then
 			print_failed "Wine/Mobox is not installed. Please set up Wine/Mobox first."
 		else
-			local chrome_installer_url="https://dl.google.com/chrome/install/standalonesources/GoogleChromeStandaloneEnterprise64.msi"
+			local chrome_installer_url="https://dl.google.com/chrome/install/GoogleChromeStandaloneEnterprise64.msi"
 			local temp_installer="$TERMUX_PREFIX/tmp/ChromeStandaloneSetup64.msi"
 			print_msg "Downloading Google Chrome Windows standalone installer..."
 			mkdir -p "$TERMUX_PREFIX/tmp"
 			if curl -Lf "$chrome_installer_url" -o "$temp_installer"; then
 				print_success "Download complete."
 				print_msg "Running installer under Mobox/Wine..."
-				wine "$temp_installer"
+				wine msiexec /i "$temp_installer" /q
 				print_success "Google Chrome installation initiated under Mobox."
 				
 				# Create a desktop entry for Google Chrome via Mobox/Wine
