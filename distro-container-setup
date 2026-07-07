@@ -373,10 +373,11 @@ function pd_package_install_and_check() {
 function create_shell_script() {
 	local script_path="$1"
 	local shell_setup_content="$2"
-	# Create directory if it doesn't exist
-	mkdir -p "$(dirname "$script_path")"
-	cat <<-EOF >"$script_path"
+	local temp_script="$TERMUX_PREFIX/tmp/pd_script_$$_${RANDOM}.sh"
+	mkdir -p "$TERMUX_PREFIX/tmp"
+	cat <<-EOF >"$temp_script"
 		#!/data/data/com.termux/files/usr/bin/bash
+
 		# Repository URLs
 		readonly REPO_OWNER="$REPO_OWNER"
 		readonly REPO_NAME="$REPO_NAME"
@@ -386,20 +387,25 @@ function create_shell_script() {
 		readonly REPO_RAW_URL="$REPO_RAW_URL"
 		readonly TERMUX_HOME="$TERMUX_HOME"
 		readonly TERMUX_PREFIX="$TERMUX_PREFIX"
+
 		# Retry configuration
 		readonly MAX_DOWNLOAD_RETRIES="$MAX_DOWNLOAD_RETRIES"
 		readonly MAX_INSTALL_RETRIES="$MAX_INSTALL_RETRIES"
 		readonly DOWNLOAD_TIMEOUT="$DOWNLOAD_TIMEOUT"
+
 		#########################################################################
 		# Initial Values
 		#########################################################################
+
 		readonly TERMUX_DESKTOP_PATH="$TERMUX_DESKTOP_PATH"
 		readonly CONFIG_FILE="$CONFIG_FILE"
 		readonly LOG_FILE="$LOG_FILE"
 		LITE_MODE="$LITE_MODE"
+
 		#########################################################################
 		# Color Setup
 		#########################################################################
+
 		# shellcheck disable=SC2154
 		R="$R"
 		G="$G"
@@ -409,14 +415,18 @@ function create_shell_script() {
 		NC="$NC"
 		BOLD="$BOLD"
 	EOF
-	typeset -f log_debug print_success print_failed print_warn print_msg check_and_delete pd_package_install_and_check >>"$script_path"
-	echo "$shell_setup_content" >>"$script_path"
-	# Make script executable
-	chmod +x "$script_path"
-	# Verify script was created
-	if [[ ! -f "$script_path" ]]; then
-			print_failed "Failed to create script at $script_path"
-		fi
+	typeset -f log_debug print_success print_failed print_warn print_msg check_and_delete pd_package_install_and_check >>"$temp_script"
+	echo "$shell_setup_content" >>"$temp_script"
+
+	if [[ "$selected_distro_type" == "chroot" ]]; then
+		su -c "mkdir -p \"$(dirname "$script_path")\" && cp \"$temp_script\" \"$script_path\" && chmod +x \"$script_path\""
+		rm -f "$temp_script"
+	else
+		mkdir -p "$(dirname "$script_path")"
+		cp "$temp_script" "$script_path"
+		chmod +x "$script_path"
+		rm -f "$temp_script"
+	fi
 }
 
 #################
@@ -471,7 +481,7 @@ function distro_fix_sound_issue() {
 	"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/install_audio_related_packs.sh'
 	if [[ "$selected_distro_type" == "chroot" ]]; then
 		if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
-			echo "export PULSE_SERVER=127.0.0.1" | tee -a "$distro_path/etc/profile" >/dev/null
+			su -c "echo \"export PULSE_SERVER=127.0.0.1\" >> \"$distro_path/etc/profile\""
 		fi
 	else
 		if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
@@ -603,6 +613,10 @@ function distro_terminal_utility_setup() {
 #
 #########################################################################
 function add_installer_common() {
+	if [[ -z "$final_user_name" ]]; then
+		final_user_name="root"
+	fi
+
 
 	cat <<-EOF >"$TERMUX_PREFIX/bin/$selected_distro"
 		#!/data/data/com.termux/files/usr/bin/bash
@@ -1964,6 +1978,10 @@ function add_add_to_menu() {
 #########################################################################
 
 function distro_app_launch_setup() {
+	if [[ -z "$final_user_name" ]]; then
+		final_user_name="root"
+	fi
+
 	if [[ "$enable_hw_acc" == "y" ]]; then
 
 		cat <<-EOF >"$TERMUX_PREFIX/bin/pdrun"
