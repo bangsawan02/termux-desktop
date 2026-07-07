@@ -6098,7 +6098,6 @@ function reset_changes() {
 # Call Functions
 #
 #########################################################################
-# check_termux
 detect_package_manager
 if [[ -z "$1" ]] || [[ "$1" == "--install" ]] || [[ "$1" == "-i" ]]; then
 	check_installer_status "$1"
@@ -6232,87 +6231,3 @@ case $1 in
 	remove_termux_desktop
 	;;
 --install | -i | in)
-	install_termux_desktop "$1"
-	;;
---change | -c)
-	case $2 in
-	style)
-		# shellcheck disable=SC2034
-		CALL_FROM_CHANGE_STYLE=true
-		change_style
-		;;
-	distro | pd)
-		# shellcheck disable=SC2034
-		CALL_FROM_CHANGE_DISTRO=true
-		change_distro
-		;;
-	hw | hwa)
-		change_hw
-		;;
-	autostart)
-		change_autostart
-		;;
-	display)
-		change_display
-		;;
-	de | wm | desktop | winm | wim)
-		change_de
-		;;
-	h | help | -h | --help)
-		show_change_help
-		;;
-	*)
-		print_failed "${BOLD} Invalid option: ${C}$2"
-		print_msg "Use --change help   - to show help"
-		;;
-	esac
-	;;
---reinstall | -ri)
-	IFS=',' read -ra OPTIONS <<<"$2"
-	for option in "${OPTIONS[@]}"; do
-		case $option in
-		icons)
-			reinstall_icons
-			;;
-		themes)
-			reinstall_themes
-			;;
-		config)
-			reinstall_config
-			;;
-		h | help | -h | --help)
-			show_reinstall_help
-			exit
-			;;
-		*)
-			print_failed "${BOLD} Invalid option: ${C}$option"
-			print_msg "Use --reinstall help   - show help"
-			;;
-		esac
-	done
-	;;
---update)
-	check_for_update_and_update_installer "$1"
-	check_for_appstore_update
-	;;
---help | -h)
-	show_help
-	;;
---reset)
-	reset_changes
-	;;
---local-config | --config | -config)
-	print_recomended_msg
-	load_local_config "$2"
-	install_termux_desktop "$1"
-	;;
-*)
-	if [[ -n "$1" ]]; then
-		print_failed "${BOLD} Invalid option: ${C}$1"
-		show_help
-	else
-		install_termux_desktop "$1"
-	fi
-	# check_termux
-	;;
-esac

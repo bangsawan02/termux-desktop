@@ -474,7 +474,7 @@ function distro_fix_sound_issue() {
 	if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
 		echo "export PULSE_SERVER=127.0.0.1" >>"$distro_path/etc/profile"
 	fi
-			echo "export PULSE_SERVER=127.0.0.1" | tee -a "$distro_path/etc/profile" >/dev/null
+			echo "export PULSE_SERVER=127.0.0.1" | sudo tee -a "$distro_path/etc/profile" >/dev/null
 		fi
 	else
 		if ! grep -q "export PULSE_SERVER=" "$distro_path/etc/profile" 2>/dev/null; then
@@ -899,7 +899,7 @@ function chroot_distro_debian_based_app_installer() {
 		    set -- "\${new_args[@]}"
 
 		    # Create the packinstall.sh script
-		    cat > "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
+		    sudo tee "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -963,7 +963,7 @@ function chroot_distro_debian_based_app_installer() {
 		    # Handle remove package and remove from menu part #
 		    ###################################################
 		    # Create the packremove.sh script
-		    cat > "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
+		    sudo tee "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1258,7 +1258,7 @@ function chroot_distro_arch_based_app_installer() {
 		    chroot-distro login "${selected_distro}" --shared-tmp -- env DISPLAY=:${display_number} sudo pacman -S"\${options[@]}" --noconfirm "\${packages[@]}"
 
 		    # Create the packinstall.sh script
-		    cat > "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
+		    sudo tee "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1309,7 +1309,7 @@ function chroot_distro_arch_based_app_installer() {
 		    done
 
 		    # Create the packremove.sh script
-		    cat > "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
+		    sudo tee "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1575,7 +1575,7 @@ function chroot_distro_fedora_based_app_installer() {
 		    set -- "\${new_args[@]}"
 
 		    # Create the packinstall.sh script
-		    cat > "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
+		    sudo tee "${save_root_path}/packinstall.sh" >/dev/null <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -1636,7 +1636,7 @@ function chroot_distro_fedora_based_app_installer() {
 		    # Handle remove package and remove from menu part #
 		    ###################################################
 		    # Create the packremove.sh script
-		    cat > "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
+		    sudo tee "${save_root_path}/packremove.sh" >/dev/null <<'EOF'
 		#!/bin/bash
 
 		source $TERMUX_PREFIX/etc/termux-desktop/common_functions
@@ -2270,13 +2270,13 @@ function add_useful_repos() {
 				pd_package_install_and_check "wget gpg apt-transport-https"
 
 				# Download and store the Microsoft GPG key
-				wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/packages.microsoft.gpg > /dev/null
+				wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/packages.microsoft.gpg > /dev/null
 
 				# Set correct permissions on the key
-				install -D -o root -g root -m 644 /etc/apt/keyrings/packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+				sudo install -D -o root -g root -m 644 /etc/apt/keyrings/packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
 
 				# Add the VS Code repository non-interactively
-				echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | tee /etc/apt/sources.list.d/vscode.list > /dev/null
+				echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
 			EOF
 			create_shell_script "$save_path/run_add_useful_repos.sh" "$added_repo_list"
 			"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c "bash /root/run_add_useful_repos.sh"
@@ -2289,7 +2289,7 @@ function add_useful_repos() {
 				rpm --import https://packages.microsoft.com/keys/microsoft.asc
 
 				# Add the VS Code repository without user interaction
-				echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | tee /etc/yum.repos.d/vscode.repo > /dev/null
+				echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
 
 				# Update the package list
 				dnf check-update -y
@@ -2340,104 +2340,3 @@ libdrm mesa-libgbm libxcomposite libxdamage libxcb libxshmfence"
 	"${selected_distro_type}"-distro login "$selected_distro" -- /bin/bash -c 'bash /root/some_required_pack.sh'
 }
 
-function install_distro_container() {
-	set_distro_paths
-	setup_distro
-	if [[ "$selected_distro_type" == "chroot" ]]; then
-		termux_home_link=" "
-	else
-		termux_home_link="--termux-home"
-	fi
-	distro_basic_task
-	if [[ "$CALL_FROM_CHANGE_DISTRO" == false ]]; then
-		if [[ "$enable_hw_acc" == "y" ]]; then
-			hw_config
-		fi
-	fi
-	distro_zsh_setup
-	distro_terminal_utility_setup
-	distro_create_app_installer
-	add_add_to_menu
-	add_useful_repos
-	if [[ "$LITE_MODE" != "1" && "$LITE_MODE" != "true" ]]; then
-		install_some_required_pack
-	fi
-	distro_app_launch_setup
-}
-
-#########################################################################
-#
-# Check Installation
-#
-#########################################################################
-
-function chroot_distro_container_install_check() {
-	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls /data/local/chroot-distro/installed-rootfs/$selected_distro" &>/dev/null; then
-		echo
-		print_success "${BOLD} $selected_distro container setup successfully"
-	else
-		max_retries=2
-		retry_count=0
-		while [[ "$retry_count" -lt "$max_retries" ]]; do
-			print_failed "Some problem occurred in $selected_distro setup"
-			echo
-			print_msg "Trying again... (Attempt $((retry_count + 1)) of $max_retries)"
-			install_distro_container
-			if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && su -c "ls /data/local/chroot-distro/installed-rootfs/$selected_distro" &>/dev/null; then
-				echo
-				print_success "${BOLD} $selected_distro container setup successfully"
-				break
-			fi
-			((retry_count++))
-		done
-
-		if [[ "$retry_count" -eq "$max_retries" ]]; then
-			print_failed "Failed to set up $selected_distro container after multiple attempts. Skipping...${NC}"
-		fi
-	fi
-}
-
-function proot_distro_container_install_check() {
-	if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && [[ -d "$TERMUX_PREFIX/var/lib/proot-distro/installed-rootfs/$selected_distro" ]]; then
-		echo
-		print_success "${BOLD} $selected_distro container setup successfully"
-	else
-		max_retries=2
-		retry_count=0
-		while [[ "$retry_count" -lt "$max_retries" ]]; do
-			print_failed "Some problem occurred in $selected_distro setup"
-			echo
-			print_msg "Trying again... (Attempt $((retry_count + 1)) of $max_retries)"
-			install_distro_container
-			if [[ -f "$TERMUX_PREFIX/bin/$selected_distro" ]] && [[ -d "$TERMUX_PREFIX/var/lib/proot-distro/installed-rootfs/$selected_distro" ]]; then
-				echo
-				print_success "${BOLD} $selected_distro container setup successfully"
-				break
-			fi
-			((retry_count++))
-		done
-
-		if [[ "$retry_count" -eq "$max_retries" ]]; then
-			print_failed "Failed to set up $selected_distro container after multiple attempts. Skipping...${NC}"
-		fi
-	fi
-}
-
-function distro_container_install_check() {
-	if [[ "$selected_distro_type" == "chroot" ]]; then
-		chroot_distro_container_install_check
-	else
-		proot_distro_container_install_check
-	fi
-}
-
-check_termux
-
-# why this seperate main function ?
-# -> in somepart part of the main setup script
-# you just want to source all the functions
-# but don't want to run the entire setup process
-function run_distro_container_setup_main() {
-	install_distro_container
-	distro_container_install_check
-}
