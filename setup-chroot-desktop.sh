@@ -121,6 +121,26 @@ if [[ -z "$installed_browser" ]]; then
 fi
 echo -e "Using browser: ${G}$installed_browser${NC}"
 
+if [[ -z "$final_user_name" ]]; then
+	if [[ -n "$user_name" ]]; then
+		final_user_name="$user_name"
+	else
+		echo -e "\n${Y}Configure Non-Root User (Recommended):${NC}"
+		read -p "Enter username for the desktop [default: termux]: " custom_user
+		final_user_name="${custom_user:-termux}"
+	fi
+fi
+if [[ -z "$final_pass" ]]; then
+	if [[ -n "$pass" ]]; then
+		final_pass="$pass"
+	else
+		read -sp "Enter password for $final_user_name [default: termux]: " custom_pass
+		echo
+		final_pass="${custom_pass:-termux}"
+	fi
+fi
+echo -e "Using desktop user: ${G}$final_user_name${NC}"
+
 # Define startup command mappings
 case "$de_name" in
 	xfce) de_startup="startxfce4" ;;
@@ -133,7 +153,12 @@ case "$de_name" in
 esac
 
 # Define environment variables based on acceleration choice
-termux_arch=$(dpkg --print-architecture)
+APP_ARCH=$(uname -m)
+case "$APP_ARCH" in
+	aarch64) termux_arch="aarch64" ;;
+	armv7* | arm | armv8*) termux_arch="arm" ;;
+	*) termux_arch="aarch64" ;; # fallback
+esac
 case "$pd_hw_answer" in
 	turnip)
 		pd_hw_method="VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/freedreno_icd.${termux_arch}.json MESA_LOADER_DRIVER_OVERRIDE=zink TU_DEBUG=noconform"
@@ -239,6 +264,9 @@ if [[ "$selected_distro" == "debian" || "$selected_distro" == "ubuntu" ]]; then
 	echo -e "${Y}[*] Updating package repositories inside container...${NC}"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt update"
 
+	echo -e "${Y}[*] Installing sudo and dbus dependencies...${NC}"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "apt install -y sudo dbus dbus-x11"
+
 	# Desktop environment installation packages
 	case "$de_name" in
 		xfce) de_packages="xfce4 xfce4-goodies dbus-x11" ;;
@@ -276,6 +304,9 @@ elif [[ "$selected_distro" == "archlinux" ]]; then
 	echo -e "${Y}[*] Updating package repositories inside container...${NC}"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "pacman -Sy --noconfirm"
 
+	echo -e "${Y}[*] Installing sudo and dbus dependencies...${NC}"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "pacman -S --noconfirm sudo dbus"
+
 	case "$de_name" in
 		xfce) de_packages="xfce4 xfce4-goodies dbus" ;;
 		lxqt) de_packages="lxqt openbox dbus" ;;
@@ -309,6 +340,9 @@ elif [[ "$selected_distro" == "fedora" ]]; then
 	echo -e "${Y}[*] Updating package repositories inside container...${NC}"
 	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "dnf check-update || true"
 
+	echo -e "${Y}[*] Installing sudo and dbus dependencies...${NC}"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "dnf install -y sudo dbus-x11"
+
 	case "$de_name" in
 		xfce) de_packages="@xfce-desktop-environment dbus-x11" ;;
 		lxqt) de_packages="@lxqt-desktop-environment dbus-x11" ;;
@@ -339,6 +373,33 @@ elif [[ "$selected_distro" == "fedora" ]]; then
 	fi
 fi
 
+# 6.5. Configure Non-Root User inside container
+if [[ "$final_user_name" != "root" ]]; then
+	echo -e "\n${Y}[*] Configuring non-root user '$final_user_name' inside container...${NC}"
+	# Create groups if they don't exist
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "groupadd storage 2>/dev/null || true"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "groupadd wheel 2>/dev/null || true"
+	
+	# Add the user
+	if ! chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "id -u $final_user_name" &>/dev/null; then
+		chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "useradd -m -g users -s /bin/bash $final_user_name"
+	fi
+	
+	# Assign secondary groups
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "for g in wheel polkitd audio video storage; do groupadd -f \$g 2>/dev/null || true; usermod -aG \$g $final_user_name 2>/dev/null || true; done"
+	
+	# Set password
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "echo '$final_user_name:$final_pass' | chpasswd"
+	
+	# Setup passwordless sudo for convenience
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "chmod u+rw /etc/sudoers 2>/dev/null || true"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "echo '$final_user_name ALL=(ALL) NOPASSWD:ALL' | tee -a /etc/sudoers > /dev/null 2>&1"
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "chmod u-w /etc/sudoers 2>/dev/null || true"
+	
+	# Ensure proper home folder ownership
+	chroot-distro login "$selected_distro" --shared-tmp -- /bin/bash -c "chown -R $final_user_name:users /home/$final_user_name 2>/dev/null || true"
+fi
+
 # 7. Configure Turnip / GPU driver if Turnip was selected
 if [[ "$pd_hw_answer" == "turnip" ]]; then
 	echo -e "\n${Y}[*] Downloading Turnip driver Mesa 26.0.1...${NC}"
@@ -357,16 +418,23 @@ if [[ "$pd_hw_answer" == "turnip" ]]; then
 fi
 
 # 8. Create standard launchers on host
-if [[ ! -f "$TERMUX_PREFIX/bin/pdrun" ]]; then
-	echo -e "\n${Y}[*] Creating pdrun helper...${NC}"
-	cat <<-EOF >"$TERMUX_PREFIX/bin/pdrun"
-		#!/data/data/com.termux/files/usr/bin/bash
-		xhost + > /dev/null 2>&1
-		gpu_env="env DISPLAY=\$(echo \$DISPLAY) XDG_RUNTIME_DIR=\${TMPDIR} $pd_hw_method"
-		chroot-distro login "$selected_distro" --shared-tmp -- env \$gpu_env sh -lc 'exec "\$@"' _ "\$@"
-	EOF
-	chmod +x "$TERMUX_PREFIX/bin/pdrun"
-fi
+echo -e "\n${Y}[*] Creating pdrun helper...${NC}"
+cat <<-EOF >"$TERMUX_PREFIX/bin/pdrun"
+	#!/data/data/com.termux/files/usr/bin/bash
+	xhost + > /dev/null 2>&1
+	gpu_env="env DISPLAY=\$(echo \$DISPLAY) XDG_RUNTIME_DIR=\${TMPDIR} $pd_hw_method"
+	chroot-distro login "$selected_distro" --shared-tmp --user "$final_user_name" -- env \$gpu_env sh -lc 'exec "\$@"' _ "\$@"
+EOF
+chmod +x "$TERMUX_PREFIX/bin/pdrun"
+
+DISTRO_WRAP_BIN="$TERMUX_PREFIX/bin/$selected_distro"
+echo -e "${Y}[*] Creating direct launcher shortcut at $DISTRO_WRAP_BIN...${NC}"
+cat <<-EOF >"$DISTRO_WRAP_BIN"
+	#!/data/data/com.termux/files/usr/bin/bash
+	xhost + >/dev/null 2>&1
+	chroot-distro login "$selected_distro" --shared-tmp --user "$final_user_name" --work-dir "\$PWD"
+EOF
+chmod +x "$DISTRO_WRAP_BIN"
 
 LAUNCH_SCRIPT="$TERMUX_PREFIX/bin/start-chroot-desktop"
 echo -e "\n${Y}[*] Creating Termux:X11 launcher script at $LAUNCH_SCRIPT...${NC}"
